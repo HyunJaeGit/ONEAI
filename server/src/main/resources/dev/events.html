@@ -55,7 +55,7 @@
     #status { margin: 0; color: #536174; font-size: .92rem; }
     .grid-hint { margin: 0 2px 8px; color: #657286; font-size: .8rem; }
     .grid-shell { max-height: min(68vh, 760px); overflow: auto; border: 1px solid #cbd4df; border-radius: 9px; background: #fff; }
-    .event-grid { width: 100%; min-width: 1390px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: .84rem; }
+    .event-grid { width: 100%; min-width: 1530px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: .84rem; }
     .event-grid th, .event-grid td { height: 42px; padding: 0 10px; border-right: 1px solid #e0e5eb; border-bottom: 1px solid #e0e5eb; text-align: left; vertical-align: middle; }
     .event-grid th { position: sticky; top: 0; z-index: 2; height: 38px; background: #edf1f5; color: #354255; font-size: .78rem; font-weight: 750; white-space: nowrap; }
     .event-grid th:last-child, .event-grid td:last-child { border-right: 0; }
@@ -69,7 +69,9 @@
     .event-grid th:nth-child(6), .event-grid th:nth-child(7) { width: 190px; }
     .event-grid th:nth-child(8) { width: 170px; }
     .event-grid th:nth-child(9) { width: 74px; }
-    .event-grid th:nth-child(10) { width: 86px; }
+    .event-grid th:nth-child(10) { width: 130px; }
+    .event-grid th:nth-child(11) { width: 74px; }
+    .event-grid th:nth-child(12) { width: 86px; }
     .cell-value { display: block; width: 100%; min-width: 0; min-height: 0; padding: 2px 0; border: 0; background: transparent; color: #25364a; text-align: left; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; cursor: zoom-in; }
     .cell-value.identifier { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .78rem; }
     .cell-value.expanded { position: relative; z-index: 1; height: auto; max-height: 180px; padding: 7px; border: 1px solid #91a7c0; border-radius: 5px; background: #fff; box-shadow: 0 3px 10px rgb(20 37 58 / 14%); text-overflow: clip; white-space: normal; overflow-wrap: anywhere; overflow: auto; cursor: zoom-out; }
@@ -92,7 +94,7 @@
       .results-tools .selection-label { flex-basis: 100%; }
       .results-tools button { flex: 1; }
       .grid-shell { max-height: 65vh; }
-      .event-grid { min-width: 1390px; }
+      .event-grid { min-width: 1530px; }
     }
   </style>
 </head>
@@ -103,12 +105,6 @@
         <h1>수집 이벤트 조회</h1>
         <span class="local-badge">로컬 전용</span>
       </div>
-      <p class="intro">검색·결과 노출·문서 클릭·조회 흐름을 확인하는 개발자 화면입니다. USERID는 인증 계정이 아닌 분석용 라벨이며, 테스트에는 합성 ID와 테스트 검색어만 사용하세요.</p>
-      <ol class="guide">
-        <li><strong>백엔드 실행</strong><br>Spring Boot 서버를 실행한 상태에서 사용합니다.</li>
-        <li><strong>이벤트 만들기</strong><br>매뉴얼로 이동해 분석용 USERID를 입력하고 검색하거나 문서를 엽니다.</li>
-        <li><strong>조회·정리</strong><br>행을 선택해 삭제하거나 현재 표시된 데이터를 정리할 수 있습니다.</li>
-      </ol>
       <nav class="header-links" aria-label="개발자 페이지 이동">
         <a href="/">매뉴얼로 돌아가기</a>
       </nav>
@@ -127,7 +123,16 @@
           <option value="results_exposed">검색 결과 노출</option>
           <option value="document_clicked">문서 클릭</option>
           <option value="document_viewed">문서 조회</option>
+          <option value="usefulness_rated">문서 유용성 평가</option>
         </select>
+      </div>
+      <div class="field">
+        <label for="rating">평가 점수</label>
+        <select id="rating"><option value="">전체 점수</option><option value="0">0점 · 기존 기준만</option><option value="1">1점</option><option value="2">2점</option><option value="3">3점</option><option value="4">4점</option><option value="5">5점</option></select>
+      </div>
+      <div class="field">
+        <label for="criteriaVersion">평가 기준</label>
+        <select id="criteriaVersion"><option value="">전체 기준</option><option value="1">검색 관련성 v1</option><option value="0">도움 정도 v0 · 기존</option></select>
       </div>
       <button id="refresh" type="submit">새로고침</button>
     </form>
@@ -145,7 +150,7 @@
       <p class="grid-hint">긴 값은 마우스를 올려 전체 확인하거나 클릭해 셀을 펼칠 수 있습니다. 표 안에서 좌우로 이동할 수 있습니다.</p>
       <div id="grid-shell" class="grid-shell">
         <table class="event-grid" aria-label="최근 수집 이벤트">
-          <thead><tr><th>선택</th><th>수신 시각 (한국 시간)</th><th>USERID</th><th>이벤트 종류</th><th>검색어</th><th>sessionId</th><th>searchId</th><th>documentId / 결과</th><th>순위</th><th>상세</th></tr></thead>
+          <thead><tr><th>선택</th><th>수신 시각 (한국 시간)</th><th>USERID</th><th>이벤트 종류</th><th>검색어</th><th>sessionId</th><th>searchId</th><th>documentId / 결과</th><th>순위</th><th>평가 기준</th><th>평가</th><th>상세</th></tr></thead>
           <tbody id="events" aria-live="polite"></tbody>
         </table>
       </div>
@@ -219,11 +224,14 @@
       addCell(row, formatTime(event.receivedAt), '수신 시각', { identifier:true });
       addCell(row, event.userId, 'USERID');
       addCell(row, event.eventType, '이벤트 종류');
-      addCell(row, event.payload?.query, '검색어');
+      addCell(row, event.payload?.query ?? event.context?.query, '검색어');
       addCell(row, event.sessionId, 'sessionId', { identifier:true });
       addCell(row, event.context?.searchId, 'searchId', { identifier:true });
       addCell(row, documents, 'documentId / 결과', { identifier:true });
       addCell(row, ranks, '결과 순위');
+      const criteriaLabel = event.eventType !== 'usefulness_rated' ? null : event.payload?.criteriaVersion === 1 ? '검색 관련성 v1' : '도움 정도 v0 (기존)';
+      addCell(row, criteriaLabel, '평가 기준');
+      addCell(row, event.eventType === 'usefulness_rated' ? `${event.payload?.value}점` : null, '평가 점수');
       addCell(row, null, '상세', { details:event });
       return row;
     };
@@ -314,7 +322,9 @@
       try {
         const params = new URLSearchParams({
           userId: document.getElementById('userId').value.trim(),
-          eventType: document.getElementById('eventType').value
+          eventType: document.getElementById('eventType').value,
+          rating: document.getElementById('rating').value,
+          criteriaVersion: document.getElementById('criteriaVersion').value
         });
         const response = await fetch('/api/v1/dev/events?' + params, {
           signal: controller.signal, cache: 'no-store', redirect: 'error'
@@ -336,7 +346,7 @@
           empty.textContent = '표시할 이벤트가 없습니다. USERID로 세션을 시작해 검색한 뒤 새로고침하세요.';
           const row = document.createElement('tr');
           const cell = document.createElement('td');
-          cell.colSpan = 10;
+          cell.colSpan = 12;
           cell.append(empty);
           row.append(cell);
           list.append(row);

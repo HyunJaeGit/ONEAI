@@ -51,6 +51,15 @@ class CollectionTest {
         assertEquals("2026-10-26T00:00:00.000Z",db.queryForObject("SELECT occurred_at FROM events WHERE event_id=?",String.class,s.get("eventId").asText()));
     }
     @Test void zeroResults() throws Exception { var s=search(); assertEquals(201,post(s)); var x=exposure(s,0); assertEquals(201,post(x)); assertEquals(0,db.queryForObject("SELECT count(*) FROM result_items WHERE impression_id=?",Integer.class,x.get("eventId").asText())); }
+    @Test void searchQueryValidationAndParameterizedStorage() throws Exception {
+        var blank=search(); ((ObjectNode)blank.get("payload")).put("query","   "); assertEquals(400,post(blank));
+        var tooLong=search(); ((ObjectNode)tooLong.get("payload")).put("query","x".repeat(201)); assertEquals(400,post(tooLong));
+        var wrongType=search(); ((ObjectNode)wrongType.get("payload")).put("query",12); assertEquals(400,post(wrongType));
+        var control=search(); ((ObjectNode)control.get("payload")).put("query","합성\u0001검색"); assertEquals(400,post(control));
+        var safeText=search(); ((ObjectNode)safeText.get("payload")).put("query","합성 ' OR 1=1 --");
+        assertEquals(201,post(safeText));
+        assertEquals("합성 ' OR 1=1 --",db.queryForObject("SELECT query FROM searches WHERE search_id=?",String.class,safeText.get("eventId").asText()));
+    }
     @Test void duplicatesAndConflict() throws Exception {
         var s=search(); assertEquals(201,post(s)); assertEquals(200,post(s));
         ((ObjectNode)s.get("payload")).put("query","합성 다른값"); assertEquals(409,post(s));
@@ -74,10 +83,45 @@ class CollectionTest {
         try { assertEquals(503,post(search())); assertEquals(0,db.queryForObject("SELECT count(*) FROM events WHERE session_id=?",Integer.class,session)); }
         finally { db.execute("DROP TRIGGER fail_synthetic"); }
     }
-    @Test void directViewAndUndecidedRating() throws Exception {
+    ObjectNode linkedView() throws Exception {
+        var s=search(); assertEquals(201,post(s)); var x=exposure(s,1); assertEquals(201,post(x));
+        var c=event("document_clicked","{\"searchId\":\""+s.get("eventId").asText()+"\",\"impressionId\":\""+x.get("eventId").asText()+"\",\"documentId\":\"contact\",\"documentVersion\":\"local-v1\",\"rank\":1}"); assertEquals(201,post(c));
+        var v=event("document_viewed",mapper.writeValueAsString(c.get("payload"))); ObjectNode p=(ObjectNode)v.get("payload"); p.remove("rank"); p.put("viewId",v.get("eventId").asText()).put("clickId",c.get("eventId").asText()).put("source","search"); assertEquals(201,post(v));
+        return v;
+    }
+    ObjectNode rating(ObjectNode view,int value) throws Exception {
+        return event("usefulness_rated","{\"viewId\":\""+view.get("eventId").asText()+"\",\"criteriaVersion\":1,\"value\":"+value+"}");
+    }
+    @Test void directViewAndRatingRules() throws Exception {
         var v=event("document_viewed","{\"viewId\":\"placeholder\",\"documentId\":\"contact\",\"documentVersion\":\"local-v1\",\"source\":\"unknown\",\"searchId\":null,\"impressionId\":null,\"clickId\":null}");
         ((ObjectNode)v.get("payload")).put("viewId",v.get("eventId").asText()); assertEquals(201,post(v));
+        var one=rating(v,1); assertEquals(201,post(one)); assertEquals(200,post(one));
+        assertEquals(409,post(rating(v,5)));
+        assertEquals(400,post(rating(v,0))); assertEquals(400,post(rating(v,6)));
         assertEquals(400,post(event("usefulness_rated","{}")));
+        assertEquals(1,db.queryForObject("SELECT count(*) FROM usefulness_ratings WHERE view_id=?",Integer.class,v.get("eventId").asText()));
+        var otherView=linkedView(); assertEquals(201,post(rating(otherView,5)));
+        var oldContract=rating(otherView,4); ((ObjectNode)oldContract.get("payload")).put("criteriaVersion",0); assertEquals(400,post(oldContract));
+    }
+    @Test void searchViewRatingsAreLinkedAndFiltered() throws Exception {
+        var v=linkedView(); var r=rating(v,5); assertEquals(201,post(r));
+        var duplicate=mapper.readTree(mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/events").contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(r))).andReturn().getResponse().getContentAsByteArray());
+        assertEquals("duplicate",duplicate.get("status").asText());
+        var listed=mapper.readTree(mvc.perform(get("/api/v1/dev/events").param("eventType","usefulness_rated").param("rating","5").param("criteriaVersion","1")).andReturn().getResponse().getContentAsByteArray()).get("events").get(0);
+        assertEquals(5,listed.at("/payload/value").asInt()); assertEquals(1,listed.at("/payload/criteriaVersion").asInt()); assertEquals(v.get("eventId").asText(),listed.at("/payload/viewId").asText());
+        assertEquals(v.at("/payload/documentId").asText(),listed.at("/context/documentId").asText());
+        assertEquals(v.at("/payload/searchId").asText(),listed.at("/context/searchId").asText());
+        assertEquals("합성 가나다",listed.at("/context/query").asText());
+        assertEquals(400,mvc.perform(get("/api/v1/dev/events").param("rating","6")).andReturn().getResponse().getStatus());
+        var other=rating(v,4); other.put("sessionId",UUID.randomUUID().toString()); assertEquals(409,post(other));
+    }
+    @Test void deletingViewAlsoDeletesRatingFirst() throws Exception {
+        var v=linkedView(); var r=rating(v,2); assertEquals(201,post(r));
+        var response=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/dev/events")
+            .contentType(MediaType.APPLICATION_JSON).content("{\"eventIds\":[\""+v.get("eventId").asText()+"\"]}")).andReturn().getResponse();
+        assertEquals(200,response.getStatus());
+        assertEquals(0,db.queryForObject("SELECT count(*) FROM usefulness_ratings WHERE view_id=?",Integer.class,v.get("eventId").asText()));
+        assertEquals(0,db.queryForObject("SELECT count(*) FROM events WHERE event_id=?",Integer.class,r.get("eventId").asText()));
     }
     @Test void foreignKeysAndPrivateFiles() throws Exception {
         assertEquals(1,db.queryForObject("PRAGMA foreign_keys",Integer.class));
@@ -111,7 +155,10 @@ class CollectionTest {
         var search=own.stream().filter(e->e.get("eventType").asText().equals("search_submitted")).findFirst().orElseThrow();
         assertEquals("합성 가나다",search.at("/payload/query").asText());
         assertEquals("contact",search.at("/results/0/items/0/documentId").asText());
-        for(var e:own) assertEquals(search.get("eventId").asText(),e.at("/context/searchId").asText());
+        for(var e:own) {
+            assertEquals(search.get("eventId").asText(),e.at("/context/searchId").asText());
+            assertEquals("합성 가나다",e.at("/context/query").asText());
+        }
         assertEquals(before,db.queryForObject("SELECT count(*) FROM events",Integer.class));
         String filtered=mvc.perform(get("/api/v1/dev/events").param("eventType","document_clicked")).andReturn().getResponse().getContentAsString();
         for(var e:mapper.readTree(filtered).get("events")) assertEquals("document_clicked",e.get("eventType").asText());

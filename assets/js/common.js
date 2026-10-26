@@ -272,6 +272,7 @@ const collection = (() => {
   try {
   const sessionKey = 'oneai-session-v1';
   const navigationKey = 'oneai-navigation-v1';
+  const pageViewKey = 'oneai-page-view-v1';
   const base = new URL(root || './', location.href);
   const catalog = [
     ['./', 'manual-home'], ['pages/business/', 'business-index'],
@@ -319,7 +320,7 @@ const collection = (() => {
   };
   const reset = () => {
     session = null;
-    safe(() => { sessionStorage.removeItem(sessionKey); sessionStorage.removeItem(navigationKey); });
+    safe(() => { sessionStorage.removeItem(sessionKey); sessionStorage.removeItem(navigationKey); sessionStorage.removeItem(pageViewKey); });
     renderSession();
   };
   const validLabel = label => typeof label === 'string' && label.trim().length > 0 && label.length <= 64 && !/[\u0000-\u001f\u007f-\u009f]/.test(label);
@@ -346,37 +347,163 @@ const collection = (() => {
     if (!window.opener && validSession(stored) && (navigationType === 'reload' || internal)) session = stored;
     else reset();
   });
+  const deliver = (event, retries = 0) => {
+    if (!validSession(session) || !local || pending >= 100) return Promise.resolve(false);
+    const owner = session, body = JSON.stringify(event);
+    pending++;
+    const task = queue.then(async () => {
+      if (session !== owner || !validSession(owner)) return false;
+      try {
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 3000);
+          try {
+            const response = await fetch(new URL('api/v1/events', base), {
+              method:'POST', headers:{ 'Content-Type':'application/json' }, body,
+              signal:controller.signal, keepalive:true, credentials:'omit', redirect:'error'
+            });
+            const result = await response.json().catch(() => ({}));
+            if (response.ok && result.eventId === event.eventId && ['stored', 'duplicate'].includes(result.status)) {
+              if (session === owner) status.textContent = '수집 API 저장 확인';
+              return true;
+            }
+            if (!(response.status >= 500 || result.error?.retryable === true) || attempt === retries) return false;
+          } catch (_) {
+            if (attempt === retries) return false;
+          } finally {
+            clearTimeout(timer);
+          }
+          await new Promise(resolve => setTimeout(resolve, attempt === 0 ? 400 : 1200));
+        }
+        return false;
+      } finally { /* each attempt owns its timeout */ }
+    });
+    queue = task.catch(() => false).finally(() => { pending--; });
+    return task;
+  };
   const send = (eventType, payload, eventId = uuid()) => {
     if (!validSession(session) || !local || pending >= 100) return null;
-    const owner = session;
-    const event = { schemaVersion:1, eventId, eventType, occurredAt:new Date().toISOString(), ...owner, payload };
-    const body = JSON.stringify(event);
-    pending++;
-    queue = queue.then(async () => {
-      if (session !== owner || !validSession(owner)) return;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 3000);
-      try {
-        const response = await fetch(new URL('api/v1/events', base), {
-          method:'POST', headers:{ 'Content-Type':'application/json' }, body,
-          signal:controller.signal, keepalive:true, credentials:'omit', redirect:'error'
-        });
-        const result = await response.json();
-        if (!response.ok || result.eventId !== eventId || !['stored', 'duplicate'].includes(result.status)) throw new Error('collection failed');
-        if (session === owner) status.textContent = '수집 API 저장 확인';
-      } catch (_) {
-        if (session === owner) status.textContent = '전송 실패: 검색·열람은 계속 사용할 수 있습니다.';
-      } finally { clearTimeout(timer); }
-    }).catch(() => {}).finally(() => { pending--; });
+    const event = { schemaVersion:1, eventId, eventType, occurredAt:new Date().toISOString(), ...session, payload };
+    deliver(event).then(ok => { if (!ok && validSession(session)) status.textContent = '전송 실패: 검색·열람은 계속 사용할 수 있습니다.'; });
     return eventId;
   };
+  let activeView = null;
+  const ratingDialog = document.createElement('dialog');
+  ratingDialog.className = 'usefulness-dialog';
+  ratingDialog.setAttribute('aria-labelledby', 'usefulness-title');
+  ratingDialog.innerHTML = '<form method="dialog" class="usefulness-card" novalidate><button type="button" class="usefulness-close" aria-label="평가창 닫기">×</button><h2 id="usefulness-title">이 문서는 검색 내용과 얼마나 관련 있나요?</h2><fieldset><legend>관련성 평가 · 점수는 단계 순서입니다</legend><div class="usefulness-options"></div></fieldset><p class="usefulness-error" role="status" aria-live="polite"></p><div class="usefulness-actions"><button type="button" class="usefulness-cancel">취소</button><button type="submit" class="usefulness-submit">평가 제출</button></div></form>';
+  const scoreChoices = [
+    { key:'not-related', label:'전혀 관련 없음', value:1 },
+    { key:'unrelated', label:'관련 없음', value:2 },
+    { key:'neutral', label:'보통', value:3 },
+    { key:'related', label:'관련 있음', value:4 },
+    { key:'exact', label:'정확', value:5 }
+  ];
+  const scoreByChoice = Object.fromEntries(scoreChoices.map(choice => [choice.key, choice.value]));
+  const scoreOptions = ratingDialog.querySelector('.usefulness-options');
+  scoreChoices.forEach(({ key, label, value }) => {
+    const choice = document.createElement('label');
+    choice.innerHTML = `<input type="radio" name="usefulness" value="${key}"><span>${value}</span><small>${label}</small>`;
+    scoreOptions.append(choice);
+  });
+  document.body.append(ratingDialog);
+  let ratingSubmitting = false;
+  const closeRating = () => { if (ratingDialog.open && !ratingSubmitting) ratingDialog.close('cancel'); };
+  const showRating = record => {
+    if (!record || record.source !== 'search' || record.ratingState !== 'open' || !validSession(session) || document.visibilityState !== 'visible') return;
+    if (Date.now() < record.ratingDueAt) return;
+    if (record.ratingPending) {
+      const savedChoice = scoreChoices.find(choice => choice.value === record.ratingPending.value)?.key;
+      ratingDialog.querySelectorAll('input[name="usefulness"]').forEach(input => {
+        input.checked = input.value === savedChoice;
+        input.disabled = input.value !== savedChoice;
+      });
+      ratingDialog.querySelector('.usefulness-error').textContent = '이전 전송이 확인되지 않았습니다. 같은 점수로 다시 제출하세요.';
+    } else {
+      ratingDialog.querySelectorAll('input[name="usefulness"]').forEach(input => { input.disabled = false; });
+      ratingDialog.querySelector('.usefulness-error').textContent = '';
+    }
+    if (!ratingDialog.open) ratingDialog.showModal();
+  };
+  const storeViewRecord = record => { activeView = record; safe(() => sessionStorage.setItem(pageViewKey, JSON.stringify(record))); };
+  const viewEvent = record => ({ schemaVersion:1, eventId:record.viewId, eventType:'document_viewed', occurredAt:record.viewOccurredAt, ...session,
+    payload:{ viewId:record.viewId, documentId:record.documentId, documentVersion:record.documentVersion, source:record.source,
+      searchId:record.searchId, impressionId:record.impressionId, clickId:record.clickId } });
+  const ratingEvent = record => ({ schemaVersion:1, eventId:record.ratingPending.eventId, eventType:'usefulness_rated', occurredAt:record.ratingPending.occurredAt, ...session,
+    payload:{ viewId:record.viewId, criteriaVersion:1, value:record.ratingPending.value } });
+  const persistView = async record => {
+    if (record.viewSaved) return true;
+    const ok = await deliver(viewEvent(record), 2);
+    if (ok) { record.viewSaved = true; storeViewRecord(record); }
+    return ok;
+  };
+  const submitRating = async () => {
+    const record = activeView;
+    if (!record || record.ratingState !== 'open') return;
+    const selected = ratingDialog.querySelector('input[name="usefulness"]:checked');
+    const error = ratingDialog.querySelector('.usefulness-error');
+    if (!selected) { error.textContent = '별점을 선택하세요.'; return; }
+    if (!record.ratingPending) {
+      record.ratingPending = { eventId:uuid(), occurredAt:new Date().toISOString(), value:scoreByChoice[selected.value] };
+      ratingDialog.querySelectorAll('input[name="usefulness"]').forEach(input => { input.disabled = input.value !== selected.value; });
+      storeViewRecord(record);
+    }
+    const submit = ratingDialog.querySelector('.usefulness-submit');
+    ratingSubmitting = true;
+    submit.disabled = true;
+    ratingDialog.querySelectorAll('.usefulness-close, .usefulness-cancel').forEach(button => { button.disabled = true; });
+    error.textContent = '평가를 저장하고 있습니다.';
+    const viewOk = await persistView(record);
+    const ratingOk = viewOk && await deliver(ratingEvent(record), 2);
+    ratingSubmitting = false;
+    submit.disabled = false;
+    ratingDialog.querySelectorAll('.usefulness-close, .usefulness-cancel').forEach(button => { button.disabled = false; });
+    if (ratingOk) {
+      record.ratingState = 'submitted'; record.ratingPending = null; storeViewRecord(record);
+      ratingDialog.close('submitted');
+    } else {
+      error.textContent = '저장하지 못했습니다. 선택한 점수로 다시 제출할 수 있습니다.';
+      if (!viewOk) status.textContent = '문서 조회 저장 확인이 지연 중입니다. 평가를 다시 제출해 주세요.';
+    }
+  };
+  ratingDialog.querySelector('.usefulness-card').addEventListener('submit', event => { event.preventDefault(); submitRating(); });
+  ratingDialog.querySelector('.usefulness-close').addEventListener('click', closeRating);
+  ratingDialog.querySelector('.usefulness-cancel').addEventListener('click', closeRating);
+  ratingDialog.addEventListener('cancel', event => { event.preventDefault(); closeRating(); });
+  ratingDialog.addEventListener('click', event => {
+    if (event.target === ratingDialog) {
+      const rect = ratingDialog.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeRating();
+    }
+  });
+  ratingDialog.addEventListener('close', () => {
+    if (ratingDialog.returnValue === 'submitted' || !activeView || activeView.ratingState !== 'open') return;
+    activeView.ratingState = 'dismissed'; activeView.ratingPending = null; storeViewRecord(activeView);
+  });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') showRating(activeView); });
   const view = context => safe(() => {
     if (!currentDocument) return;
     if (!validSession(session)) return;
     const linked = context?.sessionId === session.sessionId && context.target === canonical(location) && Date.now() - context.at < 10000 && context.clickId;
+    const nav = performance.getEntriesByType('navigation')[0];
+    const reloading = nav?.type === 'reload';
+    const previous = safe(() => JSON.parse(sessionStorage.getItem(pageViewKey) || 'null'));
+    if (reloading && previous?.sessionId === session.sessionId && previous.documentId === currentDocument.documentId) {
+      activeView = previous;
+      if (activeView.source === 'search' && activeView.ratingState === 'open') {
+        const remaining = Math.max(0, activeView.ratingDueAt - Date.now());
+        setTimeout(() => showRating(activeView), remaining);
+      }
+      if (!activeView.viewSaved) persistView(activeView);
+      return;
+    }
     const viewId = uuid();
-    send('document_viewed', { viewId, ...currentDocument, source:linked ? 'search' : 'unknown',
-      searchId:linked ? context.searchId : null, impressionId:linked ? context.impressionId : null, clickId:linked ? context.clickId : null }, viewId);
+    const record = { sessionId:session.sessionId, documentId:currentDocument.documentId, documentVersion:currentDocument.documentVersion, viewId, source:linked ? 'search' : 'unknown',
+      searchId:linked ? context.searchId : null, impressionId:linked ? context.impressionId : null, clickId:linked ? context.clickId : null,
+      viewOccurredAt:new Date().toISOString(), viewSaved:false, ratingDueAt:Date.now() + 5000, ratingState:linked ? 'open' : 'ineligible', ratingPending:null };
+    storeViewRecord(record);
+    persistView(record);
+    if (linked) setTimeout(() => showRating(record), 5000);
   });
   ui.addEventListener('submit', event => {
     event.preventDefault();

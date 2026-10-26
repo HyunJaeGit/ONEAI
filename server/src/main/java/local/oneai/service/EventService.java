@@ -8,12 +8,12 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import javax.sql.DataSource;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.core.io.ClassPathResource;
 
 @Service
 public class EventService {
@@ -28,7 +28,7 @@ public class EventService {
     public EventService(DataSource source) throws Exception {
         db = new JdbcTemplate(source);
         tx = new TransactionTemplate(new DataSourceTransactionManager(source));
-        new ResourceDatabasePopulator(new ClassPathResource("db/schema.sql")).execute(source);
+        new DatabaseMigrator().initialize(source);
         try (var in = new ClassPathResource("db/documents.tsv").getInputStream()) {
             for (String line : new String(in.readAllBytes(), StandardCharsets.UTF_8).lines().toList()) {
                 String[] cols=line.split("\t");
@@ -90,7 +90,7 @@ public class EventService {
         String eventId=id(event,"eventId"), session=id(event,"sessionId"), user=text(event,"userId",64);
         require(validUserId(user));
         String type=text(event,"eventType",32);
-        require(Set.of("search_submitted","results_exposed","document_clicked","document_viewed").contains(type));
+        require(Set.of("search_submitted","results_exposed","document_clicked","document_viewed","usefulness_rated").contains(type));
         String occurred;
         try { occurred=time.format(Instant.parse(text(event,"occurredAt",40))); }
         catch (DateTimeException ex) { throw new Invalid("VALIDATION_FAILED",400); }
@@ -102,6 +102,20 @@ public class EventService {
                 if (!old.getFirst().get("payload_digest").equals(digest)) throw new Invalid("EVENT_ID_CONFLICT",409);
                 return Map.of("eventId",eventId,"status","duplicate","receivedAt",old.getFirst().get("received_at"));
             }
+            String ratedViewId=null;
+            int ratingValue=-1;
+            int criteriaVersion=-1;
+            if (type.equals("usefulness_rated")) {
+                fields(p,"viewId","criteriaVersion","value");
+                ratedViewId=id(p,"viewId");
+                criteriaVersion=number(p,"criteriaVersion");
+                ratingValue=number(p,"value");
+                require(criteriaVersion==1 && ratingValue>=1 && ratingValue<=5 && !eventId.equals(ratedViewId));
+                row("SELECT view_id FROM document_views WHERE view_id=?",ratedViewId);
+                sameSession(ratedViewId,session);
+                if (!db.queryForList("SELECT 1 FROM usefulness_ratings WHERE view_id=?",ratedViewId).isEmpty())
+                    throw new Invalid("RATING_ALREADY_SUBMITTED",409);
+            }
             String received=time.format(Instant.now());
             var sessions=db.queryForList("SELECT user_id FROM collection_sessions WHERE session_id=?",session);
             if (sessions.isEmpty()) db.update("INSERT INTO collection_sessions VALUES (?,?,?)",session,user,received);
@@ -110,7 +124,7 @@ public class EventService {
             switch(type) {
                 case "search_submitted" -> {
                     fields(p,"searchId","sourceDocumentId","query"); equal(id(p,"searchId"),eventId);
-                    String query=text(p,"query",200); require(query.equals(query.trim()));
+                    String query=text(p,"query",200); require(query.equals(query.trim()) && query.codePoints().noneMatch(Character::isISOControl));
                     String source=p.get("sourceDocumentId").isNull()?null:text(p,"sourceDocumentId",64);
                     require(source==null || !db.queryForList("SELECT 1 FROM documents WHERE document_id=?",source).isEmpty());
                     db.update("INSERT INTO searches VALUES (?,?,?)",eventId,source,query);
@@ -146,6 +160,10 @@ public class EventService {
                         equal(related.get("document_id"),p.get("documentId").textValue()); equal(related.get("document_version"),p.get("documentVersion").textValue());
                     } else require(p.get("searchId").isNull() && p.get("impressionId").isNull() && p.get("clickId").isNull());
                     db.update("INSERT INTO document_views VALUES (?,?,?,?,?)",eventId,p.get("documentId").textValue(),p.get("documentVersion").textValue(),source,click);
+                }
+                case "usefulness_rated" -> {
+                    try { db.update("INSERT INTO usefulness_ratings VALUES (?,?,?,?)",eventId,ratedViewId,criteriaVersion,ratingValue); }
+                    catch (DataIntegrityViolationException ex) { throw new Invalid("RATING_ALREADY_SUBMITTED",409); }
                 }
                 default -> throw new Invalid("VALIDATION_FAILED",400);
             }

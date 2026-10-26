@@ -45,13 +45,17 @@ public class EventDeletionService {
 
             LinkedHashSet<String> viewIds = new LinkedHashSet<>(findIds("document_views", "view_id", existing));
             viewIds.addAll(findRelatedIds("document_views", "view_id", "click_id", clickIds));
+            LinkedHashSet<String> ratingIds = new LinkedHashSet<>(findIds("usefulness_ratings", "rating_id", existing));
+            ratingIds.addAll(findRelatedIds("usefulness_ratings", "rating_id", "view_id", viewIds));
 
             LinkedHashSet<String> allIds = new LinkedHashSet<>(existing);
             allIds.addAll(impressionIds);
             allIds.addAll(clickIds);
             allIds.addAll(viewIds);
+            allIds.addAll(ratingIds);
             Set<String> sessionIds = findRelatedIds("events", "session_id", "event_id", allIds);
 
+            deleteIn("usefulness_ratings", "rating_id", ratingIds);
             deleteIn("document_views", "view_id", viewIds);
             deleteIn("document_clicks", "click_id", clickIds);
             deleteIn("result_items", "impression_id", impressionIds);

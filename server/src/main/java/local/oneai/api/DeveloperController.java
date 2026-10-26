@@ -23,9 +23,10 @@ public class DeveloperController {
     }
     @GetMapping("/api/v1/dev/events")
     public ResponseEntity<?> events(HttpServletRequest request,
-            @RequestParam(defaultValue="") String userId,@RequestParam(defaultValue="") String eventType) {
+            @RequestParam(defaultValue="") String userId,@RequestParam(defaultValue="") String eventType,
+            @RequestParam(defaultValue="") String rating,@RequestParam(defaultValue="") String criteriaVersion) {
         if(!local(request)) return response(403,Map.of("error",Map.of("code","LOCAL_ONLY")));
-        try { return response(200,queries.recent(userId,eventType)); }
+        try { return response(200,queries.recent(userId,eventType,rating,criteriaVersion)); }
         catch(EventService.Invalid ex) { return response(ex.status,Map.of("error",Map.of("code",ex.code))); }
         catch(Exception ignored) { return response(503,Map.of("error",Map.of("code","READ_UNAVAILABLE"))); }
     }

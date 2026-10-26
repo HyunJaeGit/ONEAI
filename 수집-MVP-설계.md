@@ -10,11 +10,11 @@
 | Java·DB 엔진·빌드 도구·드라이버가 미확정 | Java 21, Spring Boot 3.5.16, Maven, Spring JDBC, SQLite JDBC 3.53.4.0으로 확정된 구현 반영 |
 | collection.js·persistence 패키지·별도 DTO 제안 | 실제 수집은 common.js, JDBC 접근은 service, JSON 검증은 JsonNode 기반. 존재하지 않는 구조 제안 제거 |
 | DB 위치·Git 제외는 향후 제안 | application.properties의 oneai.db와 LocalConfig의 루트 탐색·경로 해석, 실제 .gitignore 반영 |
-| 평가 사건·테이블·인덱스가 현재 계약처럼 포함 | 수신 사건 4종·실제 테이블 9개로 수정. 평가 전체는 미확정·미구현으로 분리 |
+| 평가 사건·테이블·인덱스가 현재 계약처럼 포함 | 이번 구현에서 usefulness_rated와 usefulness_ratings를 실제 계약·스키마에 추가 |
 | 예시의 demo-home·demo-guide-001·demo-v1 | 실제 카탈로그의 manual-home·contact·local-v1으로 예시 교체 |
 | USERID 문자·접두어 제한 | 접두어 없음. 한글·공백·기호 허용, 빈 값·제어문자·길이 제한과 프런트 공백 제거 반영 |
 | 연결 실패 조회를 direct로 표시할 수 있음 | 현재 프런트는 연결 성공 시 search, 그 외 unknown만 생성. API가 허용하는 다른 source와 구분 |
-| 지수 백오프·선행 전송 후 재시도 제안 | 현재는 순차 메모리 큐·타임아웃만 있고 자동 재시도 없음. retryable은 서버 응답 힌트로 구분 |
+| 기존 사건 전송은 순차 메모리 큐·타임아웃을 사용 | 평가 전송에 한해 같은 eventId/payload로 네트워크·5xx·retryable 오류를 400ms·1200ms 간격 최대 2회 재시도. 다른 이벤트는 기존처럼 자동 재시도하지 않음 |
 | 새 탭 독립 세션·복제 방지가 완료된 것처럼 읽힘 | 현재 복원 조건만 명시하고 새 탭·BFCache의 전체 검증은 후속 항목으로 분리 |
 | FK 삭제 RESTRICT·모든 길이 CHECK 제안 | schema.sql의 기본 NO ACTION 및 실제 CHECK만 명시. 서버 검증과 DB 제약을 구분 |
 | DB·브라우저 검증 모두 향후 계획 | 기존 테스트 보고서와 과거 브라우저 검증 기록을 구분. 이번 문서 작업은 실행 검증이 아님 |
@@ -26,7 +26,7 @@
 
 - 기존 검색·정렬·결과 화면·문서 이동을 유지하고 로컬에서 검색·결과 노출·클릭·조회 사건을 수집한다. 분석용 로그인은 수집 라벨 선택이며 비밀번호·계정 인증·사용자 진위 검증이 아니다.
 - 초기 실험은 임의 ID와 공개·합성 자료만 사용한다. 기존 업무 매뉴얼이 저장소에 있다는 사실은 실험 사용 승인이나 공개 자료임을 의미하지 않는다. 실제 회사 ID·내부 자료·상담 기록·개인정보는 승인 전 사용하지 않는다.
-- 유용성 평가는 미구현이다. AI/ML·추천 정렬·자동 재학습·통계 대시보드·고객용 기능·클라우드 배포는 현재 범위 밖이다. 개발자 이벤트 조회는 로컬 읽기 기능이다.
+- 검색 관련성 평가는 검색 결과 클릭으로 연 조회에 한해 제공한다. AI/ML·추천 정렬·자동 재학습·통계 대시보드·고객용 기능·클라우드 배포는 현재 범위 밖이다. 개발자 이벤트 조회는 로컬 조회 기능이다.
 
 흐름: `라벨 입력 → 탭 세션 시작 → 검색 → 결과 DOM 표시 → 클릭 → 대상 문서 조회 → 비동기 API 전송 → SQLite 커밋 → 개발자 화면에서 조회`.
 
@@ -56,7 +56,7 @@ common.js의 searchPages는 path·title·text를 가진 수동 정적 색인이�
 | searchId | 검색마다 새 ID, 검색 사건의 eventId와 동일 |
 | impressionId | 노출 사건의 eventId |
 | clickId | 클릭 사건의 eventId |
-| viewId | 조회 사건의 eventId와 동일. 재초기화된 페이지 조회는 새 사건 |
+| viewId | 조회 사건의 eventId와 동일. 검색 클릭으로 열린 같은 탭의 같은 문서 새로고침은 기존 ID를 재사용하고 다른 문서·직접 진입은 새 ID |
 | documentId | 프런트 고정 카탈로그와 documents.tsv의 명시적 키. 제목·검색 배열 순번으로 생성하지 않음 |
 | documentVersion | 현재 local-v1 고정. 서버는 등록된 문서·버전 조합만 허용 |
 
@@ -84,7 +84,7 @@ common.js의 searchPages는 path·title·text를 가진 수동 정적 색인이�
 |---|---|
 | schemaVersion | 정수 1 |
 | eventId·sessionId | 소문자 하이픈 형식 UUID 문자열 |
-| eventType | 아래 네 사건 중 하나 |
+| eventType | search_submitted, results_exposed, document_clicked, document_viewed, usefulness_rated 중 하나 |
 | occurredAt | 최대 40자 문자열, Instant.parse 가능한 시각. UTC 밀리초 문자열로 저장 |
 | userId | 3절의 라벨 문자열 |
 | payload | 사건별 필수 필드만 가진 객체 |
@@ -97,12 +97,17 @@ common.js의 searchPages는 path·title·text를 가진 수동 정적 색인이�
 | results_exposed | searchId, totalCount, items | 기존 검색과 같은 세션. 0≤totalCount≤100, totalCount=items.length. items의 문서 중복 금지·rank는 1부터 연속 |
 | document_clicked | searchId, impressionId, documentId, documentVersion, rank | 노출의 검색·세션과 일치하고 해당 순위의 문서·버전과 일치 |
 | document_viewed | viewId, documentId, documentVersion, source, searchId, impressionId, clickId | viewId=eventId. source=search이면 실제 클릭의 검색·노출·문서·버전·세션과 일치 |
+| usefulness_rated | viewId, criteriaVersion, value | 제출에만 생성. 신규 criteriaVersion=1, value는 정수 1~5. viewId는 같은 세션의 기존 조회이며 조회당 최대 한 건 |
+
+평가 UI는 `source=search` 조회에만 연결한다. 문서 화면 초기화 후 5초가 지난 시점에 탭이 활성일 때 표시하고, 비활성 탭에서는 visibilitychange로 복귀할 때까지 미룬다. 평가 문구는 “이 문서는 검색 내용과 얼마나 관련 있나요?”다. 관련성 v1은 1 전혀 관련 없음, 2 관련 없음, 3 보통, 4 관련 있음, 5 정확이다. 화면 선택 키를 DB 숫자로 명시적으로 매핑한다. 점수는 순서형 범주이며 점수 간격이 관련성 차이와 같다고 해석하지 않는다. 닫기·ESC·오버레이 바깥 클릭은 취소이며 평가 이벤트를 만들지 않는다. 제출 또는 취소된 조회는 같은 logical view에서 재표시하지 않는다.
+
+`oneai-page-view-v1` sessionStorage 키에는 같은 탭 새로고침을 위한 최소 조회 ID·문서 ID·세션 ID·검색 연결 ID·조회 이벤트 재전송 자료·평가 상태를 저장한다. 검색어와 userId는 이 키에 저장하지 않는다. 같은 문서의 reload는 동일 viewId 및 동일 조회 payload를 재사용해 중복 저장을 방지한다. 다른 문서로 이동하면 새 조회가 시작된다. 브라우저 저장소를 사용할 수 없으면 수집 복구가 보장되지 않으며 기존 화면은 계속 사용할 수 있어야 한다.
 
 각 items 항목은 documentId·documentVersion(각 최대 64자)·rank(정수)다. sourceDocumentId도 최대 64자이며 등록 여부를 검사한다. 0건은 totalCount=0·items=[]다. 빈 검색 제출은 프런트에서 안내만 표시하고 수집하지 않는다.
 
 조회 source는 API에서 search·navigation·direct·unknown을 허용한다. search 이외에는 searchId·impressionId·clickId가 모두 명시적 null이어야 한다. **현재 프런트는 search와 unknown만 생성한다.**
 
-검색어는 검색 사건에만 저장하고 다른 사건은 searchId로 연결한다. 테스트는 합성 문구만 사용한다. 실제 검색어의 저장·마스킹·보존 정책은 미확정이다.
+검색어는 검색 사건에만 저장하고 다른 사건은 searchId로 연결한다. 검색어는 1~200 UTF-16 코드 단위, 공백만 있는 값·앞뒤 공백·ISO 제어 문자를 서버에서 거부한다. SQL 바인딩으로 저장하고 개발자 화면은 텍스트로 렌더링한다. 개발자 조회 API는 searchId 연결을 따라 query를 읽기 전용 context로 함께 반환해 노출·클릭·조회·평가 행에서도 확인할 수 있게 하며, DB에 중복 저장하지 않는다. 테스트는 합성 문구만 사용한다. 실제 검색어의 저장·마스킹·보존 정책은 미확정이다.
 
 ### 등록 카탈로그를 사용하는 합성 예시
 
@@ -160,6 +165,12 @@ document_viewed의 eventId 끝자리는 004:
 }
 ```
 
+평가 eventId는 viewId와 별도 UUID다. 예시는 합성 데이터이며 실제 요청의 eventId는 새 UUID를 사용한다.
+
+```json
+{"viewId":"00000000-0000-4000-8000-000000000004","value":5}
+```
+
 ### 저장 응답과 오류
 
 최초 저장은 201, 동일 재전송은 200이다. 다음은 최초 저장 예시이며, 재전송에서는 status=duplicate, receivedAt은 최초 수신 시각을 반환한다.
@@ -192,7 +203,7 @@ document_viewed의 eventId 끝자리는 004:
 | 503 | STORAGE_UNAVAILABLE | true |
 | 500 | INTERNAL_ERROR | true |
 
-파싱 가능한 정규 UUID eventId가 없으면 오류 응답의 eventId는 null이다. 미등록 문서는 검증 오류, 아직 없는 선행 사건·노출 항목은 DEPENDENCY_NOT_READY다. 성공은 커밋 후에만 응답한다. retryable은 재전송 가능성에 대한 서버 힌트이며 현재 프런트의 자동 재시도를 뜻하지 않는다.
+파싱 가능한 정규 UUID eventId가 없으면 오류 응답의 eventId는 null이다. 미등록 문서는 검증 오류, 아직 없는 선행 사건·노출 항목은 DEPENDENCY_NOT_READY다. 성공은 커밋 후에만 응답한다. 평가는 서버 오류·네트워크 오류·retryable 응답에 한해 같은 요청을 최대 2회 자동 재시도하고, 실패 뒤 사용자가 다시 제출할 때도 eventId·payload를 유지한다. 검색·노출·클릭·조회 전송 정책은 기존과 같아 자동 재시도하지 않는다.
 
 ## 5. SQLite 테이블·관계·인덱스
 
@@ -209,11 +220,12 @@ document_viewed의 eventId 끝자리는 004:
 | result_items | impression_id TEXT, rank INTEGER, document_id TEXT, document_version TEXT | PK(impression_id,rank), UNIQUE(impression_id,document_id), impression_id → result_exposures, (document_id,document_version) → document_versions |
 | document_clicks | click_id TEXT, impression_id TEXT, rank INTEGER | PK/FK click_id → events, (impression_id,rank) → result_items |
 | document_views | view_id TEXT, document_id TEXT, document_version TEXT, source TEXT, click_id TEXT? | PK/FK view_id → events, click_id → document_clicks, (document_id,document_version) → document_versions |
+| usefulness_ratings | rating_id TEXT, view_id TEXT, criteria_version INTEGER, value INTEGER | PK/FK rating_id → events, UNIQUE/FK view_id → document_views. v1은 value 1~5, 보존된 v0은 이전 도움 점수 0~5 |
 
-- 평가 테이블·평가 인덱스는 현재 없다. 평가 사건도 events의 허용 종류에 포함되지 않는다.
+- usefulness_rated 신규 요청은 criteriaVersion=1과 1~5 정수만 허용한다. 같은 eventId·같은 payload 재전송은 중복 성공이다. 다른 eventId로 이미 평가된 viewId는 서비스 검증과 view_id UNIQUE로 충돌 처리한다.
 - DB CHECK는 사건 종류·schema_version=1, query의 trim 후 비어 있지 않음, total_count 정수·0 이상, result_items.rank 정수·1 이상, 조회 source와 click_id의 NULL 관계를 검사한다. 최대 길이·순위 연속성·세션 일치 등은 서버 검증이며 전부 DB CHECK로 보장되는 것은 아니다.
-- FK는 LocalConfig에서 연결마다 활성화한다. 스키마 FK는 삭제 시 기본 NO ACTION이다. 개발자 삭제 API는 트랜잭션 안에서 종속 조회·클릭·노출·검색 행을 FK 역순으로 직접 삭제한다.
-- 문서별 조회의 searchId·impressionId는 클릭·노출에서 도출하며 document_views에 중복 저장하지 않는다. 세션 1:N 사건, 검색 1:N 노출, 노출 1:N 항목, 항목 1:N 클릭, 클릭 1:N 조회를 허용한다.
+- FK는 LocalConfig에서 연결마다 활성화한다. 스키마 FK는 삭제 시 기본 NO ACTION이다. 개발자 삭제 API는 트랜잭션 안에서 평가·조회·클릭·노출·검색 행을 FK 역순으로 직접 삭제한다.
+- 문서별 조회의 searchId·impressionId는 클릭·노출에서 도출하며 document_views에 중복 저장하지 않는다. 세션 1:N 사건, 검색 1:N 노출, 노출 1:N 항목, 항목 1:N 클릭, 클릭 1:N 조회, 조회 0..1 평가를 허용한다.
 
 PK·UNIQUE 외 실제 보조 인덱스:
 
@@ -235,7 +247,7 @@ PK·UNIQUE 외 실제 보조 인덱스:
 - 기존 eventId는 payload_digest를 비교해 동일하면 duplicate, 다르면 409를 반환한다. digest는 수신 JSON 전체의 객체 키를 정렬하고 배열 순서를 유지해 SHA-256으로 계산한다. 시각 문자열 등 값의 의미까지 정규화하지 않으며 DB 저장용 시각 정규화와 별개다.
 - DB PK·UNIQUE도 중복을 방어한다. 여러 API 프로세스 사이의 별도 충돌 조정·복구 로직은 구현하지 않았다.
 - 프런트는 fetch를 순차 메모리 큐로 전송하고 대기 사건을 최대 100개로 제한한다. 요청 타임아웃은 3초, keepalive=true, 인증 정보 없이 같은 로컬 출처로 전송한다. 페이지 이동을 기다리게 하거나 사건을 디스크에 저장하지 않는다.
-- 전송 실패는 UI 상태로 알리고 검색 처리로 예외를 전파하지 않는다. 큐 초과·페이지 종료·세션 종료 등으로 사건이 유실될 수 있으며 재전송·서버 저장 성공을 보장하지 않는다. 자동 재시도는 없다.
+- 전송 실패는 UI 상태로 알리고 검색 처리로 예외를 전파하지 않는다. 평가는 동일 eventId/payload로 3초 timeout 요청을 최대 2회 재시도하며, 실패 후 모달에서 수동 재제출할 수 있다. 그 외 사건은 순차 메모리 큐만 사용한다. 큐 초과·페이지 종료·세션 종료 등으로 사건이 유실될 수 있다.
 - DB 연결·잠금·쓰기 실패는 저장 오류 응답으로 처리한다. SQLite 잠금 대기는 2초이며 journal 모드는 따로 지정하지 않는다. JSON 파일로 우회 저장하거나 유실 사건을 추측 복원하지 않는다.
 
 ## 7. 로컬 실행·저장·조회
@@ -246,7 +258,7 @@ Java 21·Spring Boot 3.5.16·Maven·Spring JDBC·SQLite JDBC 3.53.4.0을 사용�
 
 [application.properties](server/src/main/resources/application.properties)의 `oneai.db=local-data/oneai-collection.sqlite`가 기본 위치다. LocalConfig는 JAR·클래스 위치의 상위에서 AGENTS.md가 있는 저장소 루트를 찾고 상대 DB 경로를 그 루트 기준으로 해석한다. 작업 폴더 기준이 아니며 필요 시 절대경로 oneai.root로 루트를 지정할 수 있다. 부모 폴더는 생성하지만 기존 DB를 삭제하거나 초기화하지 않는다.
 
-서버 시작 시 schema.sql의 CREATE IF NOT EXISTS와 카탈로그 INSERT OR IGNORE를 수행한다. 기존 테이블 정의를 마이그레이션하거나 잘못된 기존 DB를 자동 복구하는 기능은 없다.
+서버 시작 시 DatabaseMigrator가 PRAGMA user_version을 확인한다. 기존 4종 이벤트 DB(무버전 포함)는 events 행을 보존하며 usefulness_rated를 허용하는 v3 스키마로 이행한다. v2 도움 정도 평가 테이블이 있는 DB는 평가 행과 기존 0~5 값을 그대로 보존하고 `criteria_version=0`으로 표시해 과거 의미를 구분한다. 신규 평가는 `criteria_version=1`로 저장하며 1~5만 허용한다. 마이그레이션 후 PRAGMA foreign_key_check를 수행하며 실패하면 시작을 중단한다. DB 파일을 삭제하거나 초기화하지 않는다. 미지원 스키마 버전은 거부한다.
 
 기본 바인딩은 127.0.0.1:8080이다. 루트 홈과 pages·assets만 정적 제공하고 저장소 전체·DB·문서·설정을 노출하지 않는다. 프런트 수집은 localhost·127.0.0.1·[::1]의 HTTP(S)에서만 활성화한다. file:// 직접 열기는 검색·열람용이며 수집은 시작하지 않는다. 현재 서버 기본 바인딩 자체는 IPv4다.
 
@@ -256,8 +268,8 @@ Java 21·Spring Boot 3.5.16·Maven·Spring JDBC·SQLite JDBC 3.53.4.0을 사용�
 
 ### 로컬 개발자 조회·삭제
 
-- 화면: `/dev/events`. 기존 검색 화면과 분리되며 common.js를 로드하지 않아 조회 자체가 수집 사건을 만들지 않는다. 새로고침·필터·상세 JSON·빈 목록·실패 안내를 제공한다. 현재 조회된 최대 100건 안에서 행 선택·전체 선택을 지원한다.
-- API: `GET /api/v1/dev/events?userId=테스트상담사&eventType=search_submitted`. 실제 요청은 URLSearchParams 등으로 인코딩한다. 필터 생략 시 전체, userId는 정확 일치, eventType은 현재 네 종류 중 하나다.
+- 화면: `/dev/events`. 기존 검색 화면과 분리되며 common.js를 로드하지 않아 조회 자체가 수집 사건을 만들지 않는다. 새로고침·USERID·eventType·평가 기준·점수 필터·상세 JSON·빈 목록·실패 안내를 제공한다. 관련성 v1과 기존 도움 v0를 구분해 표시하며, 평가 상세에는 viewId 및 연결된 문서·검색 유입을 포함한다. 현재 조회된 최대 100건 안에서 행 선택·전체 선택을 지원한다.
+- API: `GET /api/v1/dev/events?userId=테스트상담사&eventType=search_submitted`. 실제 요청은 URLSearchParams 등으로 인코딩한다. 필터 생략 시 전체, userId는 정확 일치, eventType은 현재 다섯 종류 중 하나다. `rating=0..5`는 해당 점수 평가 사건만 반환한다.
 - API·DB 시각은 UTC RFC 3339 문자열로 유지한다. 개발자 화면의 표·상세 JSON은 한국 시간 `YYYY-MM-DD HH:mm:ss`로 변환해 표시하고 시간대 접미사는 표시하지 않는다.
 - 삭제 API: `DELETE /api/v1/dev/events` 요청 본문은 `{"eventIds":["<event UUID>"]}`이며 1~100개의 중복 없는 기존 형식 UUID만 받는다. 화면 확인 뒤 선택 행 또는 현재 표시 행의 ID만 전송한다. 필터 전체를 서버에서 다시 삭제하지 않는다.
 - 삭제는 실제 SQLite 이벤트 행 삭제이며 한 트랜잭션으로 처리한다. 검색 사건을 선택하면 그 검색의 노출·클릭·클릭에서 파생된 조회를, 노출 사건을 선택하면 해당 노출의 클릭·연결 조회를, 클릭 사건을 선택하면 연결 조회를 함께 삭제한다. FK 역순으로 subtype·결과 항목·events를 삭제하고, 이벤트가 더 남지 않은 관련 세션만 정리한다. 문서·문서 버전 카탈로그와 무관한 사건은 유지한다. DB 삭제의 복구는 제공하지 않는다.
@@ -283,6 +295,10 @@ FROM result_exposures x LEFT JOIN result_items i ON i.impression_id=x.impression
 SELECT v.view_id, v.source, v.document_id, c.click_id, x.search_id
 FROM document_views v LEFT JOIN document_clicks c ON c.click_id=v.click_id
 LEFT JOIN result_exposures x ON x.impression_id=c.impression_id;
+SELECT r.rating_id, r.view_id, r.criteria_version, r.value, v.document_id, x.search_id
+FROM usefulness_ratings r JOIN document_views v ON v.view_id=r.view_id
+LEFT JOIN document_clicks c ON c.click_id=v.click_id
+LEFT JOIN result_exposures x ON x.impression_id=c.impression_id;
 ```
 
 0건 검색은 total_count=0이며 LEFT JOIN의 항목이 null이다. 파일 크기만으로 저장 성공을 판정하지 않는다. 실행 중 DB 본체만 임의 복사하지 않으며 잠금이 있으면 API를 정상 종료하고 확인한다.
@@ -294,20 +310,18 @@ LEFT JOIN result_exposures x ON x.impression_id=c.impression_id;
 - 수신 오류 응답은 일반화한 메시지만 반환한다. 애플리케이션은 payload를 로그로 출력하지 않으며 logback-spring.xml에서 WARN 미만 출력을 차단한다. Tomcat 접근 로그도 비활성이다.
 - 기존 검토 문서 docs/phase-4-review.md·docs/exception-guidance-review.md는 매뉴얼 검토·회귀 참고이며 수집 MVP 단계 완료 기록이 아니다.
 
-기존 검증 기록: CollectionTest 보고서는 15개 테스트, 실패·오류·건너뜀 0개다. 저장·연결·한글 시각·0건·중복/동시 재전송·롤백·조회 필터·외부 주소 거부·자유 라벨 저장을 포함한다. 과거 브라우저 검증에서는 공개·합성 시험 본문으로 수집·개발자 조회·필터·API 중단·라벨 로그인·복원·모바일 입력창을 확인했다. 실회사 자료는 사용하지 않았다.
-
-이번 최신화는 코드·설정 대조와 문서 검사만 수행하며 테스트·빌드·브라우저·DB 검증을 다시 실행한 결과가 아니다.
+평가 추가 후 검증: CollectionTest 17개 및 DatabaseMigratorTest 1개가 통과했다. 0·5점 저장, 범위 오류, 멱등 재전송, 조회당 UNIQUE 충돌, 세션 일치, 평가 필터·연결 복원·종속 삭제, 구버전 검색 행 보존과 foreign_key_check를 확인했다. Maven package도 통과했다. 브라우저 자동화는 이번 단계에서 수행하지 않아 평가 지연·비활성 탭·닫기·새로고침 UI 동작은 미검증이다. 과거 브라우저 검증은 검색·개발자 조회 경로에 한정된다.
 
 ## 9. 미구현·미확정·현재 한계
 
 | 항목 | 상태 |
 |---|---|
-| 유용성 평가 | UI·허용값·재평가/취소 정책 미확정. usefulness_rated 수신·테이블·인덱스 미구현 |
+| 평가 기준 | 관련성 v1은 1~5 순서형 점수로 저장. 과거 도움 v0 데이터는 기준 버전 0으로 유지하며 새 평가로 재해석하지 않음 |
 | 실제 검색어·자료 | 사용 승인·마스킹·보존 기간·운영 삭제 정책 미확정. 현재는 합성 데이터 실험만 |
 | 세션 | 운영 만료·복원 정책, 새 탭 복제 방지·BFCache·뒤로가기 전체 검증 미완료 |
 | 전송 | 자동 재시도·페이지 종료 시 보장·영구 큐 미구현. 현재 큐·타임아웃의 유실 한계 존재 |
 | 문서 개정 | local-v1 고정. 버전 증가·동일 버전 경로 변경·구조화한 출처 관리 정책 미확정 |
-| 스키마 변경 | 초기 생성만 구현. 버전별 마이그레이션·기존 데이터 변환은 후속 작업 |
+| 스키마 변경 | user_version 3 마이그레이션을 구현. 향후 버전 변경에는 별도 단계별 마이그레이션을 추가해야 함 |
 | 시각 | 클라이언트 허용 오차 정책 미확정. 수신 시각과 분리 저장하며 사용자 시각을 정답으로 간주하지 않음 |
 | 검증 차이 | JS trim과 Java isBlank/trim의 유니코드 공백 처리 차이·모든 경계 문자 동작은 전체 검증하지 않음 |
 | 조회·운영 범위 | 최근 100건, 단일 로컬 프로세스. 다프로세스·외부 배포·통계·데이터 편집/삭제는 구현 범위 밖 |
