@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ONE AI 개발자 이벤트 조회</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:24px;color:#17212f}h1{font-size:1.5rem}form{display:flex;gap:12px;align-items:end;flex-wrap:wrap}label{display:grid;gap:4px}input,select,button{font:inherit;padding:8px}table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{border:1px solid #ccc;padding:8px;text-align:left;vertical-align:top}td{overflow-wrap:anywhere;min-width:90px}.scroll{overflow:auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}summary{cursor:pointer}#status{min-height:1.5em}
+</style></head><body>
+<h1>개발자용 이벤트 조회</h1><p>로컬 SQLite 최근 100건 · 읽기 전용 · USERID는 분석용 라벨입니다.</p>
+<form id="filters"><label>USERID (정확히 일치)<input id="userId" maxlength="64" placeholder="예: 테스트상담사"></label>
+<label>이벤트 종류<select id="eventType"><option value="">전체</option><option>search_submitted</option><option>results_exposed</option><option>document_clicked</option><option>document_viewed</option></select></label><button id="refresh">새로고침</button></form>
+<p id="status" role="status" aria-live="polite"></p>
+<div class="scroll"><table><thead><tr><th>수신 시각 (UTC)</th><th>USERID</th><th>이벤트 종류</th><th>sessionId</th><th>searchId</th><th>documentId</th><th>결과 순위</th><th>상세 정보</th></tr></thead><tbody id="events"></tbody></table></div>
+<script>
+'use strict';
+const form=document.getElementById('filters'), list=document.getElementById('events'), status=document.getElementById('status'), button=document.getElementById('refresh');
+form.addEventListener('submit', async event=>{
+  event.preventDefault(); button.disabled=true; list.replaceChildren(); status.textContent='불러오는 중…';
+  const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),5000);
+  try {
+    const params=new URLSearchParams({userId:document.getElementById('userId').value.trim(),eventType:document.getElementById('eventType').value});
+    const response=await fetch('/api/v1/dev/events?'+params,{signal:controller.signal,cache:'no-store',redirect:'error'});
+    if(!response.ok) throw new Error(response.status===400?'필터 값을 확인하세요.':'이벤트를 불러오지 못했습니다. 로컬 API 실행 상태를 확인하세요.');
+    const data=await response.json(); if(!Array.isArray(data.events)) throw new Error('조회 응답 형식이 올바르지 않습니다.');
+    for(const event of data.events){
+      const row=document.createElement('tr');
+      const items=event.payload.items;
+      const documents=Array.isArray(items)?items.map(item=>item.documentId).join(', '):event.context.documentId;
+      const ranks=Array.isArray(items)?items.map(item=>item.rank).join(', '):event.context.rank;
+      for(const value of [event.receivedAt,event.userId,event.eventType,event.sessionId,event.context.searchId,documents || null,ranks || null]){
+        const cell=document.createElement('td');cell.textContent=value ?? '—';row.append(cell);
+      }
+      const cell=document.createElement('td'),details=document.createElement('details'),summary=document.createElement('summary'),pre=document.createElement('pre');
+      summary.textContent='사건·검색어·결과 보기';pre.textContent=JSON.stringify(event,null,2); details.append(summary,pre);cell.append(details);row.append(cell);list.append(row);
+    }
+    status.textContent=data.events.length ? `${data.events.length}건 표시 (최근 ${data.limit}건 이내, 최신 수신 순)` : '조건에 맞는 이벤트가 없습니다.';
+  }catch(error){list.replaceChildren();status.textContent=error.name==='AbortError'?'응답 시간이 초과되었습니다. 로컬 API 실행 상태를 확인하세요.':error instanceof TypeError?'API 요청에 실패했습니다. 로컬 백엔드 실행 상태를 확인하세요.':error.message || 'API 요청에 실패했습니다.';}
+  finally{clearTimeout(timer);button.disabled=false;}
+});
+form.requestSubmit();
+</script></body></html>

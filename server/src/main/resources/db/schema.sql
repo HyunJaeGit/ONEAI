@@ -1,0 +1,17 @@
+CREATE TABLE IF NOT EXISTS collection_sessions(session_id TEXT NOT NULL PRIMARY KEY,user_id TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS documents(document_id TEXT NOT NULL PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS document_versions(document_id TEXT NOT NULL REFERENCES documents,version TEXT NOT NULL,path TEXT NOT NULL,PRIMARY KEY(document_id,version));
+CREATE TABLE IF NOT EXISTS events(event_id TEXT NOT NULL PRIMARY KEY,session_id TEXT NOT NULL REFERENCES collection_sessions,event_type TEXT NOT NULL CHECK(event_type IN ('search_submitted','results_exposed','document_clicked','document_viewed')),schema_version INTEGER NOT NULL CHECK(schema_version=1),occurred_at TEXT NOT NULL,received_at TEXT NOT NULL,payload_digest TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS searches(search_id TEXT NOT NULL PRIMARY KEY REFERENCES events,source_document_id TEXT REFERENCES documents,query TEXT NOT NULL CHECK(length(trim(query))>0));
+CREATE TABLE IF NOT EXISTS result_exposures(impression_id TEXT NOT NULL PRIMARY KEY REFERENCES events,search_id TEXT NOT NULL REFERENCES searches,total_count INTEGER NOT NULL CHECK(typeof(total_count)='integer' AND total_count>=0));
+CREATE TABLE IF NOT EXISTS result_items(impression_id TEXT NOT NULL REFERENCES result_exposures,rank INTEGER NOT NULL CHECK(typeof(rank)='integer' AND rank>=1),document_id TEXT NOT NULL,document_version TEXT NOT NULL,PRIMARY KEY(impression_id,rank),UNIQUE(impression_id,document_id),FOREIGN KEY(document_id,document_version) REFERENCES document_versions(document_id,version));
+CREATE TABLE IF NOT EXISTS document_clicks(click_id TEXT NOT NULL PRIMARY KEY REFERENCES events,impression_id TEXT NOT NULL,rank INTEGER NOT NULL,FOREIGN KEY(impression_id,rank) REFERENCES result_items(impression_id,rank));
+CREATE TABLE IF NOT EXISTS document_views(view_id TEXT NOT NULL PRIMARY KEY REFERENCES events,document_id TEXT NOT NULL,document_version TEXT NOT NULL,source TEXT NOT NULL CHECK(source IN ('search','navigation','direct','unknown')),click_id TEXT REFERENCES document_clicks,FOREIGN KEY(document_id,document_version) REFERENCES document_versions(document_id,version),CHECK((source='search' AND click_id IS NOT NULL) OR (source<>'search' AND click_id IS NULL)));
+CREATE INDEX IF NOT EXISTS ix_sessions_user ON collection_sessions(user_id,created_at);
+CREATE INDEX IF NOT EXISTS ix_events_session ON events(session_id,received_at);
+CREATE INDEX IF NOT EXISTS ix_events_type ON events(event_type,received_at);
+CREATE INDEX IF NOT EXISTS ix_search_source ON searches(source_document_id);
+CREATE INDEX IF NOT EXISTS ix_exposure_search ON result_exposures(search_id);
+CREATE INDEX IF NOT EXISTS ix_item_document ON result_items(document_id,document_version);
+CREATE INDEX IF NOT EXISTS ix_view_document ON document_views(document_id,document_version);
+CREATE INDEX IF NOT EXISTS ix_view_click ON document_views(click_id);

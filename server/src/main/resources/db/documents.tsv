@@ -1,0 +1,17 @@
+manual-home	./
+business-index	pages/business/
+business-overview	pages/business/overview.html
+business-collection	pages/business/collection.html
+business-inspection	pages/business/inspection.html
+business-distribution	pages/business/distribution.html
+business-pencil	pages/business/pencil.html
+school-index	pages/school/
+school-preparation	pages/school/preparation.html
+school-os-preparation	pages/school/os-preparation.html
+school-schedule	pages/school/schedule.html
+school-collection-day	pages/school/collection-day.html
+school-receipt	pages/school/receipt.html
+school-transfer	pages/school/transfer.html
+school-installation	pages/school/installation.html
+relocation-index	pages/relocation/
+contact	pages/contact.html

@@ -262,6 +262,174 @@ const applyPageHighlights = query => {
   notice.append(label, clearButton);
   main.prepend(notice);
 };
+// 수집은 기존 검색과 독립적으로 실패합니다. 본문·제목·전체 URL은 전송하지 않습니다.
+const collection = (() => {
+  try {
+  const sessionKey = 'oneai-session-v1';
+  const navigationKey = 'oneai-navigation-v1';
+  const base = new URL(root || './', location.href);
+  const catalog = [
+    ['./', 'manual-home'], ['pages/business/', 'business-index'],
+    ['pages/business/overview.html', 'business-overview'],
+    ['pages/business/collection.html', 'business-collection'],
+    ['pages/business/inspection.html', 'business-inspection'],
+    ['pages/business/distribution.html', 'business-distribution'],
+    ['pages/business/pencil.html', 'business-pencil'],
+    ['pages/school/', 'school-index'],
+    ['pages/school/preparation.html', 'school-preparation'],
+    ['pages/school/os-preparation.html', 'school-os-preparation'],
+    ['pages/school/schedule.html', 'school-schedule'],
+    ['pages/school/collection-day.html', 'school-collection-day'],
+    ['pages/school/receipt.html', 'school-receipt'],
+    ['pages/school/transfer.html', 'school-transfer'],
+    ['pages/school/installation.html', 'school-installation'],
+    ['pages/relocation/', 'relocation-index'], ['pages/contact.html', 'contact']
+  ];
+  const canonical = url => url.pathname.replace(/index\.html$/, '');
+  const identify = path => {
+    const url = new URL(path, base);
+    const entry = catalog.find(([path]) => canonical(new URL(path, base)) === canonical(url));
+    return entry ? { documentId:entry[1], documentVersion:'local-v1' } : null;
+  };
+  const currentDocument = identify(location.href);
+  const local = /^https?:$/.test(location.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  const ui = document.createElement('form');
+  ui.className = 'collection-session';
+  ui.innerHTML = '<div class="session-account"><span class="session-identity">로그인하지 않음</span><button type="button" class="session-login">분석용 로그인</button><button type="button" class="session-logout" hidden>로그아웃</button></div><p class="session-status" role="status" aria-live="polite"></p><dialog class="session-dialog" aria-labelledby="session-title" aria-describedby="session-description"><h2 id="session-title">ONE AI 분석용 로그인</h2><p id="session-description">비밀번호 없이 분석용 USERID로 수집 세션을 시작합니다. 합성 ID와 테스트 검색어만 사용하세요.</p><label for="session-user-id">USERID</label><input id="session-user-id" name="userId" maxlength="64" placeholder="예: 테스트상담사" required autocomplete="off" aria-describedby="session-id-hint"><p id="session-id-hint">원하는 이름을 최대 64자로 입력하세요. 실제 이름·회사 ID·개인정보는 사용하지 마세요.</p><div class="session-actions"><button type="button" class="session-cancel">취소</button><button type="submit">로그인 · 세션 시작</button></div></dialog>';
+  header.append(ui);
+  const status = ui.querySelector('.session-status');
+  const dialog = ui.querySelector('.session-dialog');
+  const loginButton = ui.querySelector('.session-login');
+  const logoutButton = ui.querySelector('.session-logout');
+  let session = null;
+  let queue = Promise.resolve();
+  let pending = 0;
+  const safe = action => { try { return action(); } catch (_) { return null; } };
+  const uuid = () => crypto.randomUUID();
+  // UI는 세션 시작·종료 결과만 표시합니다. 추후 인증 연동은 이 생명주기 경계에서 처리합니다.
+  const renderSession = () => {
+    ui.querySelector('.session-identity').textContent = session ? `${session.userId} · 세션 사용 중` : '로그인하지 않음';
+    loginButton.hidden = !!session;
+    logoutButton.hidden = !session;
+  };
+  const reset = () => {
+    session = null;
+    safe(() => { sessionStorage.removeItem(sessionKey); sessionStorage.removeItem(navigationKey); });
+    renderSession();
+  };
+  const validLabel = label => typeof label === 'string' && label.trim().length > 0 && label.length <= 64 && !/[\u0000-\u001f\u007f-\u009f]/.test(label);
+  const startSession = label => {
+    if (!validLabel(label)) throw new Error('invalid label');
+    // 먼저 저장에 성공한 세션만 활성화하며 기존 세션을 임의로 재사용하지 않습니다.
+    const next = { userId:label, sessionId:uuid() };
+    sessionStorage.setItem(sessionKey, JSON.stringify(next));
+    sessionStorage.removeItem(navigationKey);
+    session = next;
+    renderSession();
+  };
+  const navigation = safe(() => {
+    const value = JSON.parse(sessionStorage.getItem(navigationKey) || 'null');
+    sessionStorage.removeItem(navigationKey);
+    return value;
+  });
+  // 새 탭은 명시적으로 시작하고 일반 이동·새로고침에서만 세션을 복원합니다.
+  const navigationType = performance.getEntriesByType('navigation')[0]?.type;
+  safe(() => {
+    const stored = JSON.parse(sessionStorage.getItem(sessionKey) || 'null');
+    const internal = navigation && navigation.target === canonical(location) && Date.now() - navigation.at < 10000;
+    if (!window.opener && stored && validLabel(stored.userId) && (navigationType === 'reload' || internal)) session = stored;
+    else reset();
+  });
+  const send = (eventType, payload, eventId = uuid()) => {
+    if (!session || !local || pending >= 100) return null;
+    const owner = session;
+    const event = { schemaVersion:1, eventId, eventType, occurredAt:new Date().toISOString(), ...owner, payload };
+    const body = JSON.stringify(event);
+    pending++;
+    queue = queue.then(async () => {
+      if (session !== owner) return;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3000);
+      try {
+        const response = await fetch(new URL('api/v1/events', base), {
+          method:'POST', headers:{ 'Content-Type':'application/json' }, body,
+          signal:controller.signal, keepalive:true, credentials:'omit', redirect:'error'
+        });
+        const result = await response.json();
+        if (!response.ok || result.eventId !== eventId || !['stored', 'duplicate'].includes(result.status)) throw new Error('collection failed');
+        if (session === owner) status.textContent = '수집 API 저장 확인';
+      } catch (_) {
+        if (session === owner) status.textContent = '전송 실패: 검색·열람은 계속 사용할 수 있습니다.';
+      } finally { clearTimeout(timer); }
+    }).catch(() => {}).finally(() => { pending--; });
+    return eventId;
+  };
+  const view = context => safe(() => {
+    if (!currentDocument) return;
+    const linked = session && context?.sessionId === session.sessionId && context.target === canonical(location) && Date.now() - context.at < 10000 && context.clickId;
+    const viewId = uuid();
+    send('document_viewed', { viewId, ...currentDocument, source:linked ? 'search' : 'unknown',
+      searchId:linked ? context.searchId : null, impressionId:linked ? context.impressionId : null, clickId:linked ? context.clickId : null }, viewId);
+  });
+  ui.addEventListener('submit', event => {
+    event.preventDefault();
+    try {
+      if (!ui.reportValidity()) return;
+      const label = ui.elements.userId.value.trim();
+      if (!validLabel(label)) {
+        ui.elements.userId.setCustomValidity('ID를 1~64자로 입력하세요. 제어문자는 사용할 수 없습니다.');
+        ui.reportValidity(); return;
+      }
+      if (!local) { status.textContent = '수집은 localhost HTTP 실행에서 사용합니다. 검색은 계속 사용할 수 있습니다.'; dialog.close(); return; }
+      startSession(label);
+      dialog.close();
+      status.textContent = '합성 USERID·검색어만 사용하세요. 세션 시작됨';
+      view(null);
+    } catch (_) { reset(); status.textContent = '세션 시작 불가: 브라우저 저장소와 실행 환경을 확인하세요.'; }
+  });
+  ui.elements.userId.addEventListener('input', () => ui.elements.userId.setCustomValidity(''));
+  loginButton.addEventListener('click', () => { dialog.showModal(); ui.elements.userId.focus(); });
+  ui.querySelector('.session-cancel').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('close', () => { if (!session) loginButton.focus(); });
+  logoutButton.addEventListener('click', () => {
+    reset(); ui.elements.userId.value = ''; status.textContent = '로그아웃되었습니다. 검색·열람은 계속 사용할 수 있습니다.'; loginButton.focus();
+  });
+  document.addEventListener('click', event => safe(() => {
+    if (!session || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest('a');
+    if (!link || link.target === '_blank') return;
+    const url = new URL(link.href);
+    if (url.origin !== location.origin || canonical(url) === canonical(location)) return;
+    // 검색 클릭에서 기록한 연결은 덮어쓰지 않습니다.
+    const saved = JSON.parse(sessionStorage.getItem(navigationKey) || 'null');
+    if (saved?.clickId && saved.target === canonical(url) && Date.now() - saved.at < 1000) return;
+    sessionStorage.setItem(navigationKey, JSON.stringify({ target:canonical(url), at:Date.now(), sessionId:session.sessionId }));
+  }));
+  status.textContent = session ? '합성 수집 세션 유지 중' : '합성 USERID로 시작하세요. 시작 전에는 수집하지 않습니다.';
+  if (session) ui.elements.userId.value = session.userId;
+  renderSession();
+  view(navigation);
+  return {
+    search: (query, matches) => safe(() => {
+      if (!session) return null;
+      const items = matches.map((item, index) => ({ ...identify(item.path), rank:index + 1 }));
+      if (items.some(item => !item.documentId)) return null;
+      const searchId = uuid();
+      send('search_submitted', { searchId, query, sourceDocumentId:currentDocument?.documentId || null }, searchId);
+      const impressionId = send('results_exposed', { searchId, totalCount:items.length, items });
+      return { searchId, impressionId, items, sessionId:session.sessionId };
+    }),
+    click: (context, index, link, event) => safe(() => {
+      if (!session || context?.sessionId !== session.sessionId || !context.impressionId) return;
+      const item = context.items[index];
+      const clickId = send('document_clicked', { searchId:context.searchId, impressionId:context.impressionId, ...item });
+      if (clickId && event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+        sessionStorage.setItem(navigationKey, JSON.stringify({ ...context, items:undefined, clickId, target:canonical(new URL(link.href)), at:Date.now() }));
+      }
+    })
+  };
+  } catch (_) { return { search:() => null, click:() => null }; }
+})();
 tools.querySelector('form').addEventListener('submit', event => {
   event.preventDefault();
   const query = tools.querySelector('input').value.trim();
@@ -276,7 +444,8 @@ tools.querySelector('form').addEventListener('submit', event => {
   }
   const matches = searchPages.filter(item => terms.every(term => normalize(item.title + ' ' + item.text).includes(term)));
   status.textContent = matches.length ? '검색 결과 ' + matches.length + '건' : '검색 결과가 없습니다. 다른 검색어를 입력하세요.';
-  matches.forEach(item => {
+  let collectionContext = null;
+  matches.forEach((item, index) => {
     const li = document.createElement('li');
     const link = document.createElement('a');
     link.href = root + item.path;
@@ -288,12 +457,14 @@ tools.querySelector('form').addEventListener('submit', event => {
     const snippetText = (start ? '…' : '') + item.text.slice(start, start + 160) + (item.text.length > start + 160 ? '…' : '');
     appendHighlightedText(snippet, snippetText, terms);
     link.addEventListener('click', event => {
+      collection.click(collectionContext, index, link, event);
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       try { sessionStorage.setItem(highlightKey, query); } catch (_) {}
     });
     li.append(link, snippet);
     list.append(li);
   });
+  collectionContext = collection.search(query, matches);
 });
 try {
   const query = sessionStorage.getItem(highlightKey);

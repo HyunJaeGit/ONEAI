@@ -1,2 +1,12 @@
 
 /reference/
+/local-data/
+/server/target/
+/.env
+/.env.*
+/server/.env
+/server/.env.*
+/server/application-local.properties
+/server/application-local.yml
+/logs/
+/server/logs/
