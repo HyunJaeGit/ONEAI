@@ -339,12 +339,11 @@ const collection = (() => {
     sessionStorage.removeItem(navigationKey);
     return value;
   });
-  // 새 탭은 명시적으로 시작하고 일반 이동·새로고침에서만 세션을 복원합니다.
-  const navigationType = performance.getEntriesByType('navigation')[0]?.type;
+  // 같은 탭은 이동 종류와 관계없이 세션을 복원합니다. opener가 있는 새 탭은 복제 세션을 사용하지 않습니다.
+  safe(() => localStorage.removeItem(sessionKey));
   safe(() => {
     const stored = JSON.parse(sessionStorage.getItem(sessionKey) || 'null');
-    const internal = navigation && navigation.target === canonical(location) && Date.now() - navigation.at < 10000;
-    if (!window.opener && validSession(stored) && (navigationType === 'reload' || internal)) session = stored;
+    if (!window.opener && validSession(stored)) session = stored;
     else reset();
   });
   const deliver = (event, retries = 0) => {
