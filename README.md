@@ -30,17 +30,18 @@ ONEAI/
 │  │  ├─ CollectionApplication.java  서버 진입점
 │  │  ├─ api/
 │  │  │  ├─ LocalController.java     이벤트 수신·오류 응답·문서 홈 제공
-│  │  │  └─ DeveloperController.java 로컬 전용 조회 API·개발자 화면
+│  │  │  └─ DeveloperController.java 로컬 전용 조회·삭제 API·개발자 화면
 │  │  ├─ service/
 │  │  │  ├─ EventService.java        검증·ID 연결·중복·트랜잭션·저장
-│  │  │  └─ EventQueryService.java   기존 테이블에서 이벤트 JSON 복원·필터
+│  │  │  ├─ EventQueryService.java   기존 테이블에서 이벤트 JSON 복원·필터
+│  │  │  └─ EventDeletionService.java 선택 사건과 종속 사건의 트랜잭션 삭제
 │  │  └─ config/LocalConfig.java     저장소 루트·DB 연결·정적 리소스 설정
 │  ├─ src/main/resources/
 │  │  ├─ application.properties     로컬 주소·포트·DB 경로 설정
 │  │  ├─ logback-spring.xml          로그 출력 제한
 │  │  ├─ db/schema.sql              SQLite 테이블·제약·인덱스
 │  │  ├─ db/documents.tsv            문서 ID·경로 카탈로그
-│  │  └─ dev/events.html            개발자용 읽기 전용 조회 화면
+│  │  └─ dev/events.html            개발자용 조회·선택 삭제 화면
 │  ├─ src/test/java/local/oneai/
 │  │  └─ CollectionTest.java         합성 데이터 API·SQLite 통합 테스트
 │  └─ target/                       생성된 JAR·테스트 결과 (Git 제외)
@@ -64,7 +65,8 @@ ONEAI/
 |---|---|
 | `POST /api/v1/events` | 검색·결과 노출·클릭·조회 수신. 최초 저장 201, 동일 사건 재전송 200 |
 | `GET /api/v1/dev/events` | 최근 100건 읽기. userId·eventType 선택 필터 |
-| `/dev/events` | 개발자용 이벤트 조회 화면 |
+| `DELETE /api/v1/dev/events` | eventIds 최대 100건 및 FK상 종속 후속 사건을 트랜잭션 삭제 |
+| `/dev/events` | 개발자용 이벤트 조회·삭제 화면 |
 
 프런트의 문서 ID·초기 버전 `local-v1`과 서버의 documents.tsv 카탈로그는 일치해야 합니다. 제목·검색 배열 순번을 문서 ID로 사용하지 않습니다. 문서 경로·카탈로그를 바꾸면 양쪽 매핑과 테스트를 함께 확인합니다.
 
@@ -121,11 +123,13 @@ LEFT JOIN result_exposures x ON x.impression_id=c.impression_id;
 
 ### 개발자용 이벤트 조회
 
-로컬 서버 실행 후 `http://127.0.0.1:8080/dev/events`를 엽니다. 기존 검색 화면과 분리된 읽기 전용 화면이며 조회 화면 자체는 수집 사건을 만들지 않습니다. 새로고침으로 DB의 최근 100건을 수신 시각 역순으로 가져옵니다. USERID는 정확히 일치하는 값, 이벤트 종류는 선택값으로 필터링합니다.
+로컬 서버 실행 후 `http://127.0.0.1:8080/dev/events`를 엽니다. 기존 검색 화면과 분리된 개발자 화면이며 조회 화면 자체는 수집 사건을 만들지 않습니다. 새로고침으로 DB의 최근 100건을 수신 시각 역순으로 가져옵니다. USERID는 정확히 일치하는 값, 이벤트 종류는 선택값으로 필터링합니다.
 
-목록에서 세션·검색·문서 ID·순위를 비교하고 상세를 펼쳐 사건 JSON을 확인합니다. 검색 사건의 상세에는 검색어와 해당 검색에 연결된 노출 목록이 포함됩니다. 직접 조회의 searchId와 순위는 비어 있으며 추측 연결하지 않습니다. 결과가 없는 경우와 API 실패 시 안내가 표시됩니다. 서버 전체 종료 후에는 이미 열린 화면에서 실패 안내를 확인할 수 있고 새 화면 HTTP 로드는 불가능합니다.
+목록에서 세션·검색·문서 ID·순위를 비교하고 상세를 펼쳐 사건 JSON을 확인합니다. 시각은 화면에서 `YYYY-MM-DD HH:mm:ss` 한국 시간으로 표시하며 DB와 API는 UTC를 유지합니다. 검색 사건의 상세에는 검색어와 해당 검색에 연결된 노출 목록이 포함됩니다. 직접 조회의 searchId와 순위는 비어 있으며 추측 연결하지 않습니다. 결과가 없는 경우와 API 실패 시 안내가 표시됩니다. 서버 전체 종료 후에는 이미 열린 화면에서 실패 안내를 확인할 수 있고 새 화면 HTTP 로드는 불가능합니다.
 
-읽기 API는 `GET /api/v1/dev/events?userId=tester01&eventType=search_submitted`입니다. 필터를 생략하면 전체 최근 사건을 반환합니다. 조회 화면과 API는 loopback 접속만 허용하며 응답은 `Cache-Control: no-store`입니다. 외부 배포·편집·삭제·차트는 제공하지 않습니다. DB 위치 설정은 `server/src/main/resources/application.properties`의 `oneai.db` 한 곳이며 상대경로는 저장소 루트 기준으로 해석합니다. 기존 DB가 있으면 그대로 사용합니다.
+**조회된 항목 전체 삭제**는 현재 화면에 불러온 최대 100건, **선택 삭제**는 체크한 행을 대상으로 합니다. 확인 후 `DELETE /api/v1/dev/events`에 eventId 목록을 보내 SQLite에서 실제 삭제합니다. 검색·노출·클릭 사건을 삭제하면 FK 관계 유지를 위해 그 사건에 연결된 후속 사건도 함께 삭제될 수 있습니다. 삭제 후 목록을 다시 불러옵니다. 삭제는 복구할 수 없으며 무관한 사건과 문서 카탈로그는 유지합니다.
+
+조회·삭제 API와 화면은 loopback 접속만 허용하며 응답은 `Cache-Control: no-store`입니다. 외부 배포·편집·차트는 제공하지 않습니다. DB 위치 설정은 `server/src/main/resources/application.properties`의 `oneai.db` 한 곳이며 상대경로는 저장소 루트 기준으로 해석합니다. 삭제 요청은 전달된 eventId와 종속 사건만 대상으로 합니다.
 
 ## 데이터와 개발 원칙
 

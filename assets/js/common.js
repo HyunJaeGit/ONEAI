@@ -323,6 +323,7 @@ const collection = (() => {
     renderSession();
   };
   const validLabel = label => typeof label === 'string' && label.trim().length > 0 && label.length <= 64 && !/[\u0000-\u001f\u007f-\u009f]/.test(label);
+  const validSession = value => !!value && validLabel(value.userId) && typeof value.sessionId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.sessionId);
   const startSession = label => {
     if (!validLabel(label)) throw new Error('invalid label');
     // 먼저 저장에 성공한 세션만 활성화하며 기존 세션을 임의로 재사용하지 않습니다.
@@ -342,17 +343,17 @@ const collection = (() => {
   safe(() => {
     const stored = JSON.parse(sessionStorage.getItem(sessionKey) || 'null');
     const internal = navigation && navigation.target === canonical(location) && Date.now() - navigation.at < 10000;
-    if (!window.opener && stored && validLabel(stored.userId) && (navigationType === 'reload' || internal)) session = stored;
+    if (!window.opener && validSession(stored) && (navigationType === 'reload' || internal)) session = stored;
     else reset();
   });
   const send = (eventType, payload, eventId = uuid()) => {
-    if (!session || !local || pending >= 100) return null;
+    if (!validSession(session) || !local || pending >= 100) return null;
     const owner = session;
     const event = { schemaVersion:1, eventId, eventType, occurredAt:new Date().toISOString(), ...owner, payload };
     const body = JSON.stringify(event);
     pending++;
     queue = queue.then(async () => {
-      if (session !== owner) return;
+      if (session !== owner || !validSession(owner)) return;
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 3000);
       try {
@@ -371,7 +372,8 @@ const collection = (() => {
   };
   const view = context => safe(() => {
     if (!currentDocument) return;
-    const linked = session && context?.sessionId === session.sessionId && context.target === canonical(location) && Date.now() - context.at < 10000 && context.clickId;
+    if (!validSession(session)) return;
+    const linked = context?.sessionId === session.sessionId && context.target === canonical(location) && Date.now() - context.at < 10000 && context.clickId;
     const viewId = uuid();
     send('document_viewed', { viewId, ...currentDocument, source:linked ? 'search' : 'unknown',
       searchId:linked ? context.searchId : null, impressionId:linked ? context.impressionId : null, clickId:linked ? context.clickId : null }, viewId);
@@ -400,7 +402,7 @@ const collection = (() => {
     reset(); ui.elements.userId.value = ''; status.textContent = '로그아웃되었습니다. 검색·열람은 계속 사용할 수 있습니다.'; loginButton.focus();
   });
   document.addEventListener('click', event => safe(() => {
-    if (!session || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    if (!validSession(session) || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     const link = event.target.closest('a');
     if (!link || link.target === '_blank') return;
     const url = new URL(link.href);
@@ -416,7 +418,7 @@ const collection = (() => {
   view(navigation);
   return {
     search: (query, matches) => safe(() => {
-      if (!session) return null;
+      if (!validSession(session)) return null;
       const items = matches.map((item, index) => ({ ...identify(item.path), rank:index + 1 }));
       if (items.some(item => !item.documentId)) return null;
       const searchId = uuid();
@@ -425,7 +427,7 @@ const collection = (() => {
       return { searchId, impressionId, items, sessionId:session.sessionId };
     }),
     click: (context, index, link, event) => safe(() => {
-      if (!session || context?.sessionId !== session.sessionId || !context.impressionId) return;
+      if (!validSession(session) || context?.sessionId !== session.sessionId || !context.impressionId) return;
       const item = context.items[index];
       const clickId = send('document_clicked', { searchId:context.searchId, impressionId:context.impressionId, ...item });
       if (clickId && event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {

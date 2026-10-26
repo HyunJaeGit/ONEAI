@@ -41,26 +41,44 @@
     #refresh { padding: 0 16px; border: 1px solid #234c7b; border-radius: 7px; background: #234c7b; color: #fff; font-weight: 700; cursor: pointer; }
     #refresh:hover { background: #183b63; }
     #refresh:disabled { opacity: .6; cursor: wait; }
+    .results-tools { display: flex; align-items: center; gap: 8px; }
+    .results-tools button { min-height: 36px; padding: 0 11px; border: 1px solid #bdc8d5; border-radius: 6px; background: #fff; color: #354255; font-size: .82rem; font-weight: 650; cursor: pointer; }
+    .results-tools button:hover:not(:disabled) { background: #f2f5f8; }
+    .results-tools button:disabled { opacity: .45; cursor: not-allowed; }
+    .results-tools .delete-button { border-color: #c94848; color: #a32929; }
+    .results-tools .delete-button:hover:not(:disabled) { background: #fff0f0; }
+    .selection-label { display: inline-flex; align-items: center; gap: 6px; color: #536174; font-size: .8rem; white-space: nowrap; }
+    .row-select, #select-all { width: 16px; height: 16px; min-height: 0; margin: 0; accent-color: #315f91; cursor: pointer; }
+    .event-grid th:first-child, .event-grid td:first-child { width: 42px; padding: 0; text-align: center; }
     .results-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 20px 2px 10px; }
     .results-heading h2 { margin: 0; font-size: 1.1rem; }
     #status { margin: 0; color: #536174; font-size: .92rem; }
-    .event-list { display: grid; gap: 12px; }
-    .empty-state { padding: 26px 18px; border: 1px dashed #bdc8d5; border-radius: 10px; background: #fff; color: #536174; text-align: center; }
-    .event-card { min-width: 0; padding: 16px; border: 1px solid #dfe5ec; border-radius: 11px; background: #fff; box-shadow: 0 2px 7px rgb(20 37 58 / 4%); }
-    .event-card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-    .event-title { display: flex; align-items: center; gap: 9px; min-width: 0; margin: 0; font-size: 1rem; }
-    .event-kind { padding: 5px 9px; border-radius: 6px; background: #edf3fa; color: #244c7c; font-size: .82rem; font-weight: 750; }
-    .event-time { color: #657286; font-size: .84rem; font-variant-numeric: tabular-nums; }
-    .event-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; }
-    .event-fields > div { min-width: 0; padding: 10px 11px; border-radius: 7px; background: #f6f8fa; }
-    .event-fields dt { margin-bottom: 5px; color: #657286; font-size: .76rem; font-weight: 650; }
-    .event-fields dd { margin: 0; color: #1d2b3c; font-size: .88rem; overflow-wrap: anywhere; }
-    .event-fields .identifier { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .79rem; }
-    .event-query { margin: 12px 0 0; padding: 11px 12px; border-left: 3px solid #6a91bc; border-radius: 0 7px 7px 0; background: #f2f6fb; overflow-wrap: anywhere; }
-    .event-query strong { display: block; margin-bottom: 4px; color: #536174; font-size: .76rem; }
-    .event-details { margin-top: 12px; border-top: 1px solid #e7ebf0; padding-top: 10px; }
-    .event-details summary { width: fit-content; min-height: 36px; padding: 7px 0; color: #244c7c; font-size: .88rem; font-weight: 700; cursor: pointer; }
-    .event-details pre { max-height: 420px; margin: 8px 0 0; padding: 12px; border-radius: 8px; background: #f4f6f9; color: #263449; font: .8rem/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; }
+    .grid-hint { margin: 0 2px 8px; color: #657286; font-size: .8rem; }
+    .grid-shell { max-height: min(68vh, 760px); overflow: auto; border: 1px solid #cbd4df; border-radius: 9px; background: #fff; }
+    .event-grid { width: 100%; min-width: 1390px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: .84rem; }
+    .event-grid th, .event-grid td { height: 42px; padding: 0 10px; border-right: 1px solid #e0e5eb; border-bottom: 1px solid #e0e5eb; text-align: left; vertical-align: middle; }
+    .event-grid th { position: sticky; top: 0; z-index: 2; height: 38px; background: #edf1f5; color: #354255; font-size: .78rem; font-weight: 750; white-space: nowrap; }
+    .event-grid th:last-child, .event-grid td:last-child { border-right: 0; }
+    .event-grid tr:last-child td { border-bottom: 0; }
+    .event-grid tbody tr:nth-child(even) { background: #fafbfd; }
+    .event-grid tbody tr:hover { background: #eef5fc; }
+    .event-grid th:nth-child(2) { width: 170px; }
+    .event-grid th:nth-child(3) { width: 130px; }
+    .event-grid th:nth-child(4) { width: 150px; }
+    .event-grid th:nth-child(5) { width: 180px; }
+    .event-grid th:nth-child(6), .event-grid th:nth-child(7) { width: 190px; }
+    .event-grid th:nth-child(8) { width: 170px; }
+    .event-grid th:nth-child(9) { width: 74px; }
+    .event-grid th:nth-child(10) { width: 86px; }
+    .cell-value { display: block; width: 100%; min-width: 0; min-height: 0; padding: 2px 0; border: 0; background: transparent; color: #25364a; text-align: left; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; cursor: zoom-in; }
+    .cell-value.identifier { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .78rem; }
+    .cell-value.expanded { position: relative; z-index: 1; height: auto; max-height: 180px; padding: 7px; border: 1px solid #91a7c0; border-radius: 5px; background: #fff; box-shadow: 0 3px 10px rgb(20 37 58 / 14%); text-overflow: clip; white-space: normal; overflow-wrap: anywhere; overflow: auto; cursor: zoom-out; }
+    .event-kind { color: #244c7c; font-weight: 700; }
+    .event-details { min-height: 0; }
+    .event-details summary { width: fit-content; min-height: 0; padding: 5px 0; color: #244c7c; font-size: .82rem; font-weight: 700; white-space: nowrap; cursor: pointer; }
+    .event-details[open] { position: relative; z-index: 3; }
+    .event-details pre { position: absolute; top: 100%; right: 0; width: min(560px, 75vw); max-height: 420px; margin: 0; padding: 12px; border: 1px solid #bdc8d5; border-radius: 7px; background: #fff; box-shadow: 0 6px 20px rgb(20 37 58 / 16%); color: #263449; font: .8rem/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; }
+    .empty-state { padding: 26px 18px; border: 1px dashed #bdc8d5; border-radius: 8px; background: #fff; color: #536174; text-align: center; }
 
     @media (max-width: 680px) {
       .page { width: min(100% - 28px, 560px); padding-top: 23px; }
@@ -70,14 +88,11 @@
       .field { min-width: 100%; }
       #refresh { width: 100%; }
       .results-heading { display: grid; gap: 5px; }
-      .event-card { padding: 13px; }
-      .event-card-header { align-items: flex-start; flex-direction: column; gap: 7px; }
-      .event-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-      .event-fields > div { padding: 9px; }
-    }
-
-    @media (max-width: 380px) {
-      .event-fields { grid-template-columns: 1fr; }
+      .results-tools { align-items: stretch; flex-wrap: wrap; }
+      .results-tools .selection-label { flex-basis: 100%; }
+      .results-tools button { flex: 1; }
+      .grid-shell { max-height: 65vh; }
+      .event-grid { min-width: 1390px; }
     }
   </style>
 </head>
@@ -86,13 +101,13 @@
     <header class="page-header">
       <div class="heading-line">
         <h1>수집 이벤트 조회</h1>
-        <span class="local-badge">로컬 전용 · 읽기 전용</span>
+        <span class="local-badge">로컬 전용</span>
       </div>
       <p class="intro">검색·결과 노출·문서 클릭·조회 흐름을 확인하는 개발자 화면입니다. USERID는 인증 계정이 아닌 분석용 라벨이며, 테스트에는 합성 ID와 테스트 검색어만 사용하세요.</p>
       <ol class="guide">
         <li><strong>백엔드 실행</strong><br>Spring Boot 서버를 실행한 상태에서 사용합니다.</li>
         <li><strong>이벤트 만들기</strong><br>매뉴얼로 이동해 분석용 USERID를 입력하고 검색하거나 문서를 엽니다.</li>
-        <li><strong>결과 확인</strong><br>이 화면으로 돌아와 새로고침하고 사건 카드를 펼쳐 상세 내용을 봅니다.</li>
+        <li><strong>조회·정리</strong><br>행을 선택해 삭제하거나 현재 표시된 데이터를 정리할 수 있습니다.</li>
       </ol>
       <nav class="header-links" aria-label="개발자 페이지 이동">
         <a href="/">매뉴얼로 돌아가기</a>
@@ -122,7 +137,18 @@
         <h2 id="events-heading">최근 이벤트</h2>
         <p id="status" role="status" aria-live="polite">불러오는 중…</p>
       </div>
-      <div id="events" class="event-list" aria-live="polite"></div>
+      <div class="results-tools" aria-label="이벤트 삭제">
+        <label class="selection-label"><input id="select-all" type="checkbox" aria-label="현재 조회 결과 전체 선택">표시 항목 전체 선택</label>
+        <button id="delete-selected" class="delete-button" type="button" disabled>선택 삭제</button>
+        <button id="delete-visible" class="delete-button" type="button" disabled>조회된 항목 전체 삭제</button>
+      </div>
+      <p class="grid-hint">긴 값은 마우스를 올려 전체 확인하거나 클릭해 셀을 펼칠 수 있습니다. 표 안에서 좌우로 이동할 수 있습니다.</p>
+      <div id="grid-shell" class="grid-shell">
+        <table class="event-grid" aria-label="최근 수집 이벤트">
+          <thead><tr><th>선택</th><th>수신 시각 (한국 시간)</th><th>USERID</th><th>이벤트 종류</th><th>검색어</th><th>sessionId</th><th>searchId</th><th>documentId / 결과</th><th>순위</th><th>상세</th></tr></thead>
+          <tbody id="events" aria-live="polite"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
@@ -132,91 +158,156 @@
     const list = document.getElementById('events');
     const status = document.getElementById('status');
     const button = document.getElementById('refresh');
-    const eventLabels = {
-      search_submitted: '검색 실행',
-      results_exposed: '검색 결과 노출',
-      document_clicked: '문서 클릭',
-      document_viewed: '문서 조회'
-    };
-
-    const addField = (container, label, value, identifier = false) => {
-      const wrapper = document.createElement('div');
-      const term = document.createElement('dt');
-      const description = document.createElement('dd');
-      term.textContent = label;
-      description.textContent = value ?? '—';
-      if (identifier && value) description.className = 'identifier';
-      wrapper.append(term, description);
-      container.append(wrapper);
+    const selectAll = document.getElementById('select-all');
+    const deleteSelectedButton = document.getElementById('delete-selected');
+    const deleteVisibleButton = document.getElementById('delete-visible');
+    let deleteBusy = false;
+    let deletionNotice = '';
+    const addCell = (row, value, label, options = {}) => {
+      const cell = document.createElement('td');
+      if (options.details) {
+        const details = document.createElement('details');
+        details.className = 'event-details';
+        const summary = document.createElement('summary');
+        summary.textContent = 'JSON 보기 · 시간은 한국 시간';
+        const pre = document.createElement('pre');
+        const displayDetails = { ...options.details };
+        for (const key of ['occurredAt', 'receivedAt']) {
+          if (displayDetails[key]) displayDetails[key] = formatTime(displayDetails[key]);
+        }
+        pre.textContent = JSON.stringify(displayDetails, null, 2);
+        details.append(summary, pre);
+        cell.append(details);
+      } else {
+        const valueButton = document.createElement('button');
+        valueButton.type = 'button';
+        valueButton.className = 'cell-value' + (options.identifier ? ' identifier' : '');
+        valueButton.textContent = value ?? '—';
+        valueButton.title = `${label}: ${value ?? '—'}`;
+        valueButton.setAttribute('aria-label', `${label}: ${value ?? '—'}`);
+        valueButton.setAttribute('aria-expanded', 'false');
+        cell.append(valueButton);
+      }
+      row.append(cell);
     };
 
     const formatTime = value => {
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return value ?? '수신 시각 없음';
-      return new Intl.DateTimeFormat('ko-KR', {
-        timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'medium'
-      }).format(date) + ' KST';
+      return new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+      }).format(date);
     };
 
-    const makeCard = event => {
-      const card = document.createElement('article');
-      card.className = 'event-card';
-
-      const header = document.createElement('div');
-      header.className = 'event-card-header';
-      const title = document.createElement('h3');
-      title.className = 'event-title';
-      const kind = document.createElement('span');
-      kind.className = 'event-kind';
-      kind.textContent = eventLabels[event.eventType] ?? event.eventType;
-      const time = document.createElement('time');
-      time.className = 'event-time';
-      time.dateTime = event.receivedAt ?? '';
-      time.textContent = '수신 ' + formatTime(event.receivedAt);
-      title.append(kind);
-      header.append(title, time);
-
+    const makeRow = event => {
+      const row = document.createElement('tr');
+      row.dataset.eventId = event.eventId;
+      const selectionCell = document.createElement('td');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'row-select';
+      checkbox.value = event.eventId;
+      checkbox.setAttribute('aria-label', `${event.eventType} 이벤트 선택`);
+      selectionCell.append(checkbox);
+      row.append(selectionCell);
       const items = Array.isArray(event.payload?.items) ? event.payload.items : null;
       const documents = items
         ? (items.length ? items.map(item => `${item.rank}위 ${item.documentId}`).join(' · ') : '결과 0건')
         : event.context?.documentId;
       const ranks = items ? (items.length ? items.map(item => item.rank).join(', ') : '—') : event.context?.rank;
-      const fields = document.createElement('dl');
-      fields.className = 'event-fields';
-      addField(fields, 'USERID', event.userId);
-      addField(fields, '세션 ID', event.sessionId, true);
-      addField(fields, '검색 ID', event.context?.searchId, true);
-      addField(fields, '문서 · 노출 결과', documents, true);
-      addField(fields, '결과 순위', ranks);
-      addField(fields, '이벤트 ID', event.eventId, true);
-
-      card.append(header, fields);
-      if (event.eventType === 'search_submitted') {
-        const query = document.createElement('p');
-        query.className = 'event-query';
-        const label = document.createElement('strong');
-        label.textContent = '검색어';
-        const text = document.createElement('span');
-        text.textContent = event.payload?.query ?? '검색어 없음';
-        query.append(label, text);
-        card.append(query);
-      }
-
-      const details = document.createElement('details');
-      details.className = 'event-details';
-      const summary = document.createElement('summary');
-      summary.textContent = '전체 사건 데이터 보기';
-      const pre = document.createElement('pre');
-      pre.textContent = JSON.stringify(event, null, 2);
-      details.append(summary, pre);
-      card.append(details);
-      return card;
+      addCell(row, formatTime(event.receivedAt), '수신 시각', { identifier:true });
+      addCell(row, event.userId, 'USERID');
+      addCell(row, event.eventType, '이벤트 종류');
+      addCell(row, event.payload?.query, '검색어');
+      addCell(row, event.sessionId, 'sessionId', { identifier:true });
+      addCell(row, event.context?.searchId, 'searchId', { identifier:true });
+      addCell(row, documents, 'documentId / 결과', { identifier:true });
+      addCell(row, ranks, '결과 순위');
+      addCell(row, null, '상세', { details:event });
+      return row;
     };
+
+    const updateSelection = () => {
+      const checkboxes = [...list.querySelectorAll('.row-select')];
+      const selectedCount = checkboxes.filter(item => item.checked).length;
+      deleteSelectedButton.disabled = deleteBusy || selectedCount === 0;
+      deleteVisibleButton.disabled = deleteBusy || checkboxes.length === 0;
+      selectAll.disabled = deleteBusy || checkboxes.length === 0;
+      selectAll.checked = checkboxes.length > 0 && selectedCount === checkboxes.length;
+      selectAll.indeterminate = selectedCount > 0 && selectedCount < checkboxes.length;
+      deleteVisibleButton.textContent = `조회된 ${checkboxes.length}건 전체 삭제`;
+    };
+
+    const deleteEvents = async (eventIds, scopeLabel) => {
+      if (!eventIds.length || deleteBusy) return;
+      const confirmed = window.confirm(
+        `${scopeLabel} ${eventIds.length}건을 삭제합니다.\n` +
+        '선택된 검색·노출·클릭에 연결된 후속 이벤트도 함께 삭제될 수 있습니다.\n' +
+        '삭제한 데이터는 복구할 수 없습니다. 계속할까요?'
+      );
+      if (!confirmed) return;
+
+      deleteBusy = true;
+      updateSelection();
+      try {
+        const response = await fetch('/api/v1/dev/events', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventIds }),
+          cache: 'no-store',
+          redirect: 'error'
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error('삭제에 실패했습니다. 로컬 API와 DB 상태를 확인하세요.');
+        deletionNotice = `${result.deletedEvents}건 삭제 완료` +
+          (result.deletedRelatedEvents ? ` · 연결된 이벤트 ${result.deletedRelatedEvents}건 포함` : '');
+        form.requestSubmit();
+      } catch (error) {
+        status.textContent = error instanceof TypeError
+          ? '삭제 API에 연결할 수 없습니다. 로컬 백엔드 상태를 확인하세요.'
+          : error.message || '삭제에 실패했습니다.';
+      } finally {
+        deleteBusy = false;
+        updateSelection();
+      }
+    };
+
+    selectAll.addEventListener('change', () => {
+      list.querySelectorAll('.row-select').forEach(item => { item.checked = selectAll.checked; });
+      updateSelection();
+    });
+    list.addEventListener('change', event => {
+      if (event.target.matches('.row-select')) updateSelection();
+    });
+    deleteSelectedButton.addEventListener('click', () => {
+      const ids = [...list.querySelectorAll('.row-select:checked')].map(item => item.value);
+      deleteEvents(ids, '선택한 이벤트');
+    });
+    deleteVisibleButton.addEventListener('click', () => {
+      const ids = [...list.querySelectorAll('.row-select')].map(item => item.value);
+      deleteEvents(ids, '현재 조회된 이벤트');
+    });
+
+    list.addEventListener('click', event => {
+      const target = event.target.closest('.cell-value');
+      if (!target) return;
+      const expand = !target.classList.contains('expanded');
+      list.querySelectorAll('.cell-value.expanded').forEach(value => {
+        value.classList.remove('expanded');
+        value.setAttribute('aria-expanded', 'false');
+      });
+      if (expand) {
+        target.classList.add('expanded');
+        target.setAttribute('aria-expanded', 'true');
+      }
+    });
 
     form.addEventListener('submit', async event => {
       event.preventDefault();
       button.disabled = true;
       list.replaceChildren();
+      updateSelection();
       status.textContent = '이벤트를 불러오는 중…';
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 5000);
@@ -235,16 +326,24 @@
         }
         const data = await response.json();
         if (!Array.isArray(data.events)) throw new Error('조회 응답 형식이 올바르지 않습니다.');
-        data.events.forEach(item => list.append(makeCard(item)));
-        status.textContent = data.events.length
+        data.events.forEach(item => list.append(makeRow(item)));
+        const loadedStatus = data.events.length
           ? `${data.events.length}건 표시 · 최근 ${data.limit}건 이내 · 최신 수신 순`
           : '조건에 맞는 이벤트가 없습니다.';
         if (!data.events.length) {
           const empty = document.createElement('p');
           empty.className = 'empty-state';
           empty.textContent = '표시할 이벤트가 없습니다. USERID로 세션을 시작해 검색한 뒤 새로고침하세요.';
-          list.append(empty);
+          const row = document.createElement('tr');
+          const cell = document.createElement('td');
+          cell.colSpan = 10;
+          cell.append(empty);
+          row.append(cell);
+          list.append(row);
         }
+        status.textContent = deletionNotice ? `${deletionNotice} · ${loadedStatus}` : loadedStatus;
+        deletionNotice = '';
+        updateSelection();
       } catch (error) {
         list.replaceChildren();
         status.textContent = error.name === 'AbortError'

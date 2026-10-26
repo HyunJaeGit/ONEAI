@@ -42,7 +42,7 @@ common.js의 searchPages는 path·title·text를 가진 수동 정적 색인이�
 | [LocalController.java](server/src/main/java/local/oneai/api/LocalController.java) | POST 수신, JSON 파싱·크기 검사·오류 매핑, 정적 홈 제공 |
 | [EventService.java](server/src/main/java/local/oneai/service/EventService.java) | 입력·관계 검증, 중복·트랜잭션·저장, 스키마·카탈로그 초기 적용 |
 | [EventQueryService.java](server/src/main/java/local/oneai/service/EventQueryService.java) | 기존 DB에서 읽기용 사건 JSON·연결값 복원 |
-| [DeveloperController.java](server/src/main/java/local/oneai/api/DeveloperController.java) | loopback 전용 조회 API·개발자 화면 |
+| [DeveloperController.java](server/src/main/java/local/oneai/api/DeveloperController.java) | loopback 전용 조회·선택 삭제 API·개발자 화면 |
 | [LocalConfig.java](server/src/main/java/local/oneai/config/LocalConfig.java) | 저장소 탐색·DB 경로·SQLite 연결·정적 리소스 |
 | [schema.sql](server/src/main/resources/db/schema.sql), [documents.tsv](server/src/main/resources/db/documents.tsv) | 실제 스키마·문서 카탈로그 |
 
@@ -212,7 +212,7 @@ document_viewed의 eventId 끝자리는 004:
 
 - 평가 테이블·평가 인덱스는 현재 없다. 평가 사건도 events의 허용 종류에 포함되지 않는다.
 - DB CHECK는 사건 종류·schema_version=1, query의 trim 후 비어 있지 않음, total_count 정수·0 이상, result_items.rank 정수·1 이상, 조회 source와 click_id의 NULL 관계를 검사한다. 최대 길이·순위 연속성·세션 일치 등은 서버 검증이며 전부 DB CHECK로 보장되는 것은 아니다.
-- FK는 SQLiteConfig.enforceForeignKeys(true)로 연결마다 활성화한다. 삭제 동작을 따로 지정하지 않아 기본 NO ACTION이다. 사건 삭제 API는 없다.
+- FK는 LocalConfig에서 연결마다 활성화한다. 스키마 FK는 삭제 시 기본 NO ACTION이다. 개발자 삭제 API는 트랜잭션 안에서 종속 조회·클릭·노출·검색 행을 FK 역순으로 직접 삭제한다.
 - 문서별 조회의 searchId·impressionId는 클릭·노출에서 도출하며 document_views에 중복 저장하지 않는다. 세션 1:N 사건, 검색 1:N 노출, 노출 1:N 항목, 항목 1:N 클릭, 클릭 1:N 조회를 허용한다.
 
 PK·UNIQUE 외 실제 보조 인덱스:
@@ -254,14 +254,17 @@ Java 21·Spring Boot 3.5.16·Maven·Spring JDBC·SQLite JDBC 3.53.4.0을 사용�
 
 .gitignore의 /local-data/는 DB·journal·WAL/SHM·그 안의 백업·로그·시험 자료를 제외한다. /server/target/, 환경 비밀설정·로그 제외 규칙도 적용되어 있다. 제외 규칙은 이미 추적된 파일을 자동 해제하지 않으므로 git ls-files와 git check-ignore로 확인한다. 백업·덤프도 local-data 경계 밖에 임의 생성하지 않는다.
 
-### 읽기 전용 개발자 조회
+### 로컬 개발자 조회·삭제
 
-- 화면: `/dev/events`. 기존 검색 화면과 분리되며 common.js를 로드하지 않아 조회 자체가 수집 사건을 만들지 않는다. 새로고침·필터·상세 JSON·빈 목록·실패 안내를 제공하며 편집·삭제·차트는 없다.
+- 화면: `/dev/events`. 기존 검색 화면과 분리되며 common.js를 로드하지 않아 조회 자체가 수집 사건을 만들지 않는다. 새로고침·필터·상세 JSON·빈 목록·실패 안내를 제공한다. 현재 조회된 최대 100건 안에서 행 선택·전체 선택을 지원한다.
 - API: `GET /api/v1/dev/events?userId=테스트상담사&eventType=search_submitted`. 실제 요청은 URLSearchParams 등으로 인코딩한다. 필터 생략 시 전체, userId는 정확 일치, eventType은 현재 네 종류 중 하나다.
+- API·DB 시각은 UTC RFC 3339 문자열로 유지한다. 개발자 화면의 표·상세 JSON은 한국 시간 `YYYY-MM-DD HH:mm:ss`로 변환해 표시하고 시간대 접미사는 표시하지 않는다.
+- 삭제 API: `DELETE /api/v1/dev/events` 요청 본문은 `{"eventIds":["<event UUID>"]}`이며 1~100개의 중복 없는 기존 형식 UUID만 받는다. 화면 확인 뒤 선택 행 또는 현재 표시 행의 ID만 전송한다. 필터 전체를 서버에서 다시 삭제하지 않는다.
+- 삭제는 실제 SQLite 이벤트 행 삭제이며 한 트랜잭션으로 처리한다. 검색 사건을 선택하면 그 검색의 노출·클릭·클릭에서 파생된 조회를, 노출 사건을 선택하면 해당 노출의 클릭·연결 조회를, 클릭 사건을 선택하면 연결 조회를 함께 삭제한다. FK 역순으로 subtype·결과 항목·events를 삭제하고, 이벤트가 더 남지 않은 관련 세션만 정리한다. 문서·문서 버전 카탈로그와 무관한 사건은 유지한다. DB 삭제의 복구는 제공하지 않는다.
 - SQL SELECT와 읽기 트랜잭션으로 조회한다. received_at DESC, events.rowid DESC로 최근 최대 100건을 반환하며 페이지 나누기는 없다.
 - 응답은 `{ "events": [], "limit": 100 }`. 각 항목은 기존 공통 필드·payload를 복원하고 receivedAt·context를 추가한다. context는 searchId·documentId·rank를 담으며 사건에 따라 null일 수 있다. 검색 사건의 documentId는 출발 문서다. 노출 사건의 다문서·순위는 payload.items에서 표시한다.
 - 검색 사건의 results 배열은 해당 검색에 연결된 impressionId·totalCount·items 목록이다. 노출 미수신은 results=[], 0건 노출 수신은 totalCount=0·items=[]로 구분한다. 읽기용 추가 필드를 수집 POST에 다시 보내면 미허용 필드로 거부된다.
-- 실제 원격 주소가 loopback인 경우만 화면·조회 API를 허용하고 Cache-Control:no-store를 적용한다. 외부 주소는 403/LOCAL_ONLY, 필터 오류는 400/VALIDATION_FAILED, 조회 실패는 503/READ_UNAVAILABLE이다. 오류 응답에 SQL·검색어·경로를 넣지 않는다.
+- 실제 원격 주소가 loopback인 경우만 화면·조회·삭제 API를 허용하고 Cache-Control:no-store를 적용한다. 외부 주소는 403/LOCAL_ONLY, 필터·삭제 요청 오류는 400/VALIDATION_FAILED, 조회 실패는 503/READ_UNAVAILABLE, 삭제 실패는 503/DELETE_UNAVAILABLE이다. 오류 응답에 SQL·검색어·경로를 넣지 않는다. 실제 수집 자료에 적용하기 전 백업·보존 정책을 별도로 정한다.
 
 ### SQLite 파일 열람
 
