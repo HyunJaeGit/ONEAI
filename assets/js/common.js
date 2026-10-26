@@ -32,7 +32,7 @@ const bindDialog = (dialog, trigger, closeSelector, contentSelector) => {
 };
 document.getElementById('site-header').innerHTML = `<div class="container"><div class="header-top"><a class="brand" href="${root || './'}">${siteName.replace(' 메뉴얼', ' <span>메뉴얼</span>')}</a><button type="button" class="print-button" aria-label="현재 페이지 인쇄" title="현재 페이지 인쇄"><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7z"/></svg></button></div><nav class="main-nav" aria-label="주 메뉴"><a href="${root || './'}"${group === 'home' ? ' aria-current="page"' : ''}>홈</a><a href="${root}pages/business/"${current('business')}>양품화 사업 안내</a><a href="${root}pages/school/"${current('school')}>학교 측 업무 프로세스</a><a href="${root}pages/contact.html"${current('contact')}>문의 경로</a><a class="nav-secondary" href="${root}pages/relocation/"${current('relocation')}>디벗 재배치·여분 기기</a></nav></div>`;
 // 루트 패치내역.md 변경 시 아래 날짜별 목록도 함께 갱신합니다.
-const patchNotes = [{"title":"2026-10-23","items":["헤더·푸터·상세 목차의 중복 코드를 정리하고 공통 JS에서 관리하도록 통합.","패치노트·문의하기 팝업의 열기·닫기 처리를 공통 함수로 통합.","양품화 공문 재발송 문의처로 교육청 창의미래교육과 안내 추가.","양품화 기기 수량 변경 요청은 서울시교육청 창의미래교육과로 문의하도록 안내 추가.","명렬표를 이메일로 이미 제출한 경우 변경 수량에 맞춰 수정 후 재발송하도록 안내 추가.","추가 안내를 문의 경로·명렬표 페이지 및 전체 검색에 반영."]},{"title":"2026-10-22","items":["수거 일정 변경·승인 후 조정 및 수거 3일 전 담당자 연락 안내 추가.","학생 과실 파손·분실 본인부담 기준 추가.","양품화 시스템과 TGS·KT 보급사업 사이트 구분 안내 추가.","삼성 크롬북 하단 고무 루버·키보드 부품 서비스 안내 추가.","펜슬 상세 페이지 신설: OS별 제공 기준·배터리 교환·양품화 전후 제공 제품 정리.","일반 절차 우선 배치, 예외·한시사업은 접기 안내로 분리.","목차·검색·상세 링크·인쇄 동작 갱신, 최종 배포일 수정.","인쇄 버튼 옆 메뉴에 날짜별 패치노트 모달 추가.","메뉴에 내용추가신청 추가: 이메일 작성·이메일 주소 및 신청 내용 복사 지원."]},{"title":"2026-10-21 · 최초 구축","items":["프로젝트 첫 커밋 : 정적 매뉴얼 사이트 구축 및 배포.","양품화 사업 안내·학교 업무 7단계·재배치·문의 페이지 구성.","제공 자료 기반 수거·준비·관리전환·배부 절차 정리.","공통 메뉴·모바일 화면·검색 및 검색어 강조·인쇄 기능 적용.","GitHub Pages 배포 설정 및 공통 푸터 정보 추가."]}];
+const patchNotes = [{"title":"2026-10-26","items":["공통 메뉴에서 로컬 개발자용 이벤트 조회 화면으로 이동할 수 있는 링크 추가."]},{"title":"2026-10-23","items":["헤더·푸터·상세 목차의 중복 코드를 정리하고 공통 JS에서 관리하도록 통합.","패치노트·문의하기 팝업의 열기·닫기 처리를 공통 함수로 통합.","양품화 공문 재발송 문의처로 교육청 창의미래교육과 안내 추가.","양품화 기기 수량 변경 요청은 서울시교육청 창의미래교육과로 문의하도록 안내 추가.","명렬표를 이메일로 이미 제출한 경우 변경 수량에 맞춰 수정 후 재발송하도록 안내 추가.","추가 안내를 문의 경로·명렬표 페이지 및 전체 검색에 반영."]},{"title":"2026-10-22","items":["수거 일정 변경·승인 후 조정 및 수거 3일 전 담당자 연락 안내 추가.","학생 과실 파손·분실 본인부담 기준 추가.","양품화 시스템과 TGS·KT 보급사업 사이트 구분 안내 추가.","삼성 크롬북 하단 고무 루버·키보드 부품 서비스 안내 추가.","펜슬 상세 페이지 신설: OS별 제공 기준·배터리 교환·양품화 전후 제공 제품 정리.","일반 절차 우선 배치, 예외·한시사업은 접기 안내로 분리.","목차·검색·상세 링크·인쇄 동작 갱신, 최종 배포일 수정.","인쇄 버튼 옆 메뉴에 날짜별 패치노트 모달 추가.","메뉴에 내용추가신청 추가: 이메일 작성·이메일 주소 및 신청 내용 복사 지원."]},{"title":"2026-10-21 · 최초 구축","items":["프로젝트 첫 커밋 : 정적 매뉴얼 사이트 구축 및 배포.","양품화 사업 안내·학교 업무 7단계·재배치·문의 페이지 구성.","제공 자료 기반 수거·준비·관리전환·배부 절차 정리.","공통 메뉴·모바일 화면·검색 및 검색어 강조·인쇄 기능 적용.","GitHub Pages 배포 설정 및 공통 푸터 정보 추가."]}];
 const headerTop = document.querySelector('.header-top');
 const headerActions = document.createElement('div');
 headerActions.className = 'header-actions';
@@ -44,6 +44,11 @@ headerActions.append(headerMenu);
 headerTop.append(headerActions);
 const menuButton = headerMenu.querySelector('.header-menu-button');
 const menuPanel = headerMenu.querySelector('.header-menu-panel');
+const developerEventsLink = document.createElement('a');
+developerEventsLink.className = 'developer-events-link';
+developerEventsLink.href = '/dev/events';
+developerEventsLink.textContent = '수집 이벤트 조회';
+menuPanel.prepend(developerEventsLink);
 const requestTrigger = document.createElement('button');
 requestTrigger.type = 'button';
 requestTrigger.className = 'content-request-trigger';
