@@ -10,3 +10,4 @@
 /server/application-local.yml
 /logs/
 /server/logs/
+/.vscode/
