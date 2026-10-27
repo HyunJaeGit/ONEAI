@@ -32,7 +32,7 @@ const bindDialog = (dialog, trigger, closeSelector, contentSelector) => {
 };
 document.getElementById('site-header').innerHTML = `<div class="container"><div class="header-top"><a class="brand" href="${root || './'}">${siteName.replace(' 메뉴얼', ' <span>메뉴얼</span>')}</a><button type="button" class="print-button" aria-label="현재 페이지 인쇄" title="현재 페이지 인쇄"><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7z"/></svg></button></div><nav class="main-nav" aria-label="주 메뉴"><a href="${root || './'}"${group === 'home' ? ' aria-current="page"' : ''}>홈</a><a href="${root}pages/business/"${current('business')}>양품화 사업 안내</a><a href="${root}pages/school/"${current('school')}>학교 측 업무 프로세스</a><a href="${root}pages/contact.html"${current('contact')}>문의 경로</a><a class="nav-secondary" href="${root}pages/relocation/"${current('relocation')}>디벗 재배치·여분 기기</a></nav></div>`;
 // 루트 패치내역.md 변경 시 아래 날짜별 목록도 함께 갱신합니다.
-const patchNotes = [{"title":"2026-10-26","items":["공통 메뉴에서 로컬 개발자용 이벤트 조회 화면으로 이동할 수 있는 링크 추가."]},{"title":"2026-10-23","items":["헤더·푸터·상세 목차의 중복 코드를 정리하고 공통 JS에서 관리하도록 통합.","패치노트·문의하기 팝업의 열기·닫기 처리를 공통 함수로 통합.","양품화 공문 재발송 문의처로 교육청 창의미래교육과 안내 추가.","양품화 기기 수량 변경 요청은 서울시교육청 창의미래교육과로 문의하도록 안내 추가.","명렬표를 이메일로 이미 제출한 경우 변경 수량에 맞춰 수정 후 재발송하도록 안내 추가.","추가 안내를 문의 경로·명렬표 페이지 및 전체 검색에 반영."]},{"title":"2026-10-22","items":["수거 일정 변경·승인 후 조정 및 수거 3일 전 담당자 연락 안내 추가.","학생 과실 파손·분실 본인부담 기준 추가.","양품화 시스템과 TGS·KT 보급사업 사이트 구분 안내 추가.","삼성 크롬북 하단 고무 루버·키보드 부품 서비스 안내 추가.","펜슬 상세 페이지 신설: OS별 제공 기준·배터리 교환·양품화 전후 제공 제품 정리.","일반 절차 우선 배치, 예외·한시사업은 접기 안내로 분리.","목차·검색·상세 링크·인쇄 동작 갱신, 최종 배포일 수정.","인쇄 버튼 옆 메뉴에 날짜별 패치노트 모달 추가.","메뉴에 내용추가신청 추가: 이메일 작성·이메일 주소 및 신청 내용 복사 지원."]},{"title":"2026-10-21 · 최초 구축","items":["프로젝트 첫 커밋 : 정적 매뉴얼 사이트 구축 및 배포.","양품화 사업 안내·학교 업무 7단계·재배치·문의 페이지 구성.","제공 자료 기반 수거·준비·관리전환·배부 절차 정리.","공통 메뉴·모바일 화면·검색 및 검색어 강조·인쇄 기능 적용.","GitHub Pages 배포 설정 및 공통 푸터 정보 추가."]}];
+const patchNotes = [{"title":"2026-10-27","items":["관리자 매뉴얼 편집 도구를 선택 위치 중심으로 정리해 요소 추가·이동·삭제를 한곳에서 사용할 수 있도록 개선.","관리자 화면 상단에 홈으로 이동 버튼과 물음표 도움말을 배치하고 편집 영역 중심으로 레이아웃 조정."]},{"title":"2026-10-26","items":["공통 메뉴에서 로컬 개발자용 이벤트 조회 화면으로 이동할 수 있는 링크 추가."]},{"title":"2026-10-23","items":["헤더·푸터·상세 목차의 중복 코드를 정리하고 공통 JS에서 관리하도록 통합.","패치노트·문의하기 팝업의 열기·닫기 처리를 공통 함수로 통합.","양품화 공문 재발송 문의처로 교육청 창의미래교육과 안내 추가.","양품화 기기 수량 변경 요청은 서울시교육청 창의미래교육과로 문의하도록 안내 추가.","명렬표를 이메일로 이미 제출한 경우 변경 수량에 맞춰 수정 후 재발송하도록 안내 추가.","추가 안내를 문의 경로·명렬표 페이지 및 전체 검색에 반영."]},{"title":"2026-10-22","items":["수거 일정 변경·승인 후 조정 및 수거 3일 전 담당자 연락 안내 추가.","학생 과실 파손·분실 본인부담 기준 추가.","양품화 시스템과 TGS·KT 보급사업 사이트 구분 안내 추가.","삼성 크롬북 하단 고무 루버·키보드 부품 서비스 안내 추가.","펜슬 상세 페이지 신설: OS별 제공 기준·배터리 교환·양품화 전후 제공 제품 정리.","일반 절차 우선 배치, 예외·한시사업은 접기 안내로 분리.","목차·검색·상세 링크·인쇄 동작 갱신, 최종 배포일 수정.","인쇄 버튼 옆 메뉴에 날짜별 패치노트 모달 추가.","메뉴에 내용추가신청 추가: 이메일 작성·이메일 주소 및 신청 내용 복사 지원."]},{"title":"2026-10-21 · 최초 구축","items":["프로젝트 첫 커밋 : 정적 매뉴얼 사이트 구축 및 배포.","양품화 사업 안내·학교 업무 7단계·재배치·문의 페이지 구성.","제공 자료 기반 수거·준비·관리전환·배부 절차 정리.","공통 메뉴·모바일 화면·검색 및 검색어 강조·인쇄 기능 적용.","GitHub Pages 배포 설정 및 공통 푸터 정보 추가."]}];
 const headerTop = document.querySelector('.header-top');
 const headerActions = document.createElement('div');
 headerActions.className = 'header-actions';
@@ -45,7 +45,7 @@ headerTop.append(headerActions);
 const menuButton = headerMenu.querySelector('.header-menu-button');
 const menuPanel = headerMenu.querySelector('.header-menu-panel');
 const developerEventsLink = document.createElement('a');
-developerEventsLink.className = 'developer-events-link';
+developerEventsLink.className = 'developer-events-link admin-menu-link-first';
 developerEventsLink.href = '/dev/events';
 developerEventsLink.textContent = '수집 이벤트 조회';
 const manualAdminLink = document.createElement('a');
@@ -65,10 +65,14 @@ const setMenuOpen = open => {
 };
 menuButton.addEventListener('click', () => setMenuOpen(menuPanel.hidden));
 const localApplication = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+const accountSessionPromise = localApplication
+  ? fetch('/api/v1/auth/me', { cache:'no-store', credentials:'same-origin' }).then(response => response.ok ? response.json() : null).catch(() => null)
+  : Promise.resolve(null);
 if (localApplication) {
   const accountLinks = document.createElement('div');
+  accountLinks.hidden = true;
   const accountStatus = document.createElement('p');
-  accountStatus.className = 'developer-events-link';
+  accountStatus.className = 'menu-account-status';
   accountStatus.setAttribute('role', 'status');
   const loginLink = document.createElement('a');
   loginLink.className = 'developer-events-link'; loginLink.href = '/login'; loginLink.textContent = '로그인';
@@ -76,10 +80,19 @@ if (localApplication) {
   registerLink.className = 'developer-events-link'; registerLink.href = '/register'; registerLink.textContent = '회원가입';
   accountLinks.append(accountStatus, loginLink, registerLink);
   menuPanel.prepend(accountLinks);
-  fetch('/api/v1/auth/me', { cache:'no-store', credentials:'same-origin' }).then(response => response.ok ? response.json() : null).then(account => {
-    if (!account?.authenticated) { accountStatus.textContent = '로그인하지 않음'; return; }
+  accountSessionPromise.then(account => {
+    if (!account) {
+      accountStatus.textContent = '계정 상태를 확인할 수 없습니다.';
+      accountLinks.hidden = false;
+      return;
+    }
+    if (!account.authenticated) {
+      accountStatus.textContent = '로그인하지 않음';
+      accountLinks.hidden = false;
+      return;
+    }
     accountStatus.textContent = `${account.loginId} · ${account.memberType}`;
-    loginLink.hidden = true; registerLink.hidden = true;
+    loginLink.remove(); registerLink.remove();
     const logoutButton = document.createElement('button');
     logoutButton.type = 'button'; logoutButton.textContent = '로그아웃';
     logoutButton.addEventListener('click', async () => {
@@ -94,8 +107,12 @@ if (localApplication) {
       } catch (_) { accountStatus.textContent = '로그아웃하지 못했습니다. 다시 시도해 주세요.'; logoutButton.disabled = false; }
     });
     accountLinks.append(logoutButton);
-    if (account.memberType === 'ADMIN') menuPanel.prepend(developerEventsLink, manualAdminLink);
-  }).catch(() => { accountStatus.textContent = '계정 상태를 확인할 수 없습니다.'; });
+    if (account.memberType === 'ADMIN') accountLinks.after(developerEventsLink, manualAdminLink);
+    accountLinks.hidden = false;
+  }).catch(() => {
+    accountStatus.textContent = '계정 상태를 확인할 수 없습니다.';
+    accountLinks.hidden = false;
+  });
 }
 document.addEventListener('pointerdown', event => {
   if (!headerMenu.contains(event.target)) setMenuOpen(false);
@@ -468,53 +485,47 @@ if (manualContent) {
   };
   loadManualContent();
 }
-  const local = /^https?:$/.test(location.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
-  const ui = document.createElement('form');
-  ui.className = 'collection-session';
-  ui.innerHTML = '<div class="session-account"><span class="session-identity">로그인하지 않음</span><button type="button" class="session-login">분석용 로그인</button><button type="button" class="session-logout" hidden>로그아웃</button></div><p class="session-status" role="status" aria-live="polite"></p><dialog class="session-dialog" aria-labelledby="session-title" aria-describedby="session-description"><h2 id="session-title">ONE AI 분석용 로그인</h2><p id="session-description">비밀번호 없이 분석용 USERID로 수집 세션을 시작합니다. 합성 ID와 테스트 검색어만 사용하세요.</p><label for="session-user-id">USERID</label><input id="session-user-id" name="userId" maxlength="64" placeholder="예: 테스트상담사" required autocomplete="off" aria-describedby="session-id-hint"><p id="session-id-hint">원하는 이름을 최대 64자로 입력하세요. 실제 이름·회사 ID·개인정보는 사용하지 마세요.</p><div class="session-actions"><button type="button" class="session-cancel">취소</button><button type="submit">로그인 · 세션 시작</button></div></dialog>';
-  header.append(ui);
-  const status = ui.querySelector('.session-status');
-  const dialog = ui.querySelector('.session-dialog');
-  const loginButton = ui.querySelector('.session-login');
-  const logoutButton = ui.querySelector('.session-logout');
+  const local = /^https?:$/.test(location.protocol) && localApplication;
+  const status = document.createElement('p');
+  status.className = 'collection-status';
+  status.setAttribute('role', 'status');
+  status.setAttribute('aria-live', 'polite');
+  header.append(status);
+  let account = null;
   let session = null;
   let queue = Promise.resolve();
   let pending = 0;
+  let csrfTokenPromise = null;
   const safe = action => { try { return action(); } catch (_) { return null; } };
   const uuid = () => crypto.randomUUID();
-  // UI는 세션 시작·종료 결과만 표시합니다. 추후 인증 연동은 이 생명주기 경계에서 처리합니다.
-  const renderSession = () => {
-    ui.querySelector('.session-identity').textContent = session ? `${session.userId} · 세션 사용 중` : '로그인하지 않음';
-    loginButton.hidden = !!session;
-    logoutButton.hidden = !session;
-  };
   const reset = () => {
     session = null;
     safe(() => { sessionStorage.removeItem(sessionKey); sessionStorage.removeItem(navigationKey); sessionStorage.removeItem(pageViewKey); });
-    renderSession();
   };
-  const validLabel = label => typeof label === 'string' && label.trim().length > 0 && label.length <= 64 && !/[\u0000-\u001f\u007f-\u009f]/.test(label);
-  const validSession = value => !!value && validLabel(value.userId) && typeof value.sessionId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.sessionId);
-  const startSession = label => {
-    if (!validLabel(label)) throw new Error('invalid label');
-    // 먼저 저장에 성공한 세션만 활성화하며 기존 세션을 임의로 재사용하지 않습니다.
-    const next = { userId:label, sessionId:uuid() };
-    sessionStorage.setItem(sessionKey, JSON.stringify(next));
-    sessionStorage.removeItem(navigationKey);
-    session = next;
-    renderSession();
-  };
+  const validSession = value => !!account?.authenticated && !!value && value.accountId===account.accountId && value.userId===account.loginId && value.sessionId===account.sessionId && typeof value.sessionId==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.sessionId);
   const navigation = safe(() => {
     const value = JSON.parse(sessionStorage.getItem(navigationKey) || 'null');
     sessionStorage.removeItem(navigationKey);
     return value;
   });
-  // 같은 탭은 이동 종류와 관계없이 세션을 복원합니다. opener가 있는 새 탭은 복제 세션을 사용하지 않습니다.
   safe(() => localStorage.removeItem(sessionKey));
-  safe(() => {
-    const stored = JSON.parse(sessionStorage.getItem(sessionKey) || 'null');
-    if (!window.opener && validSession(stored)) session = stored;
-    else reset();
+  safe(() => sessionStorage.removeItem(sessionKey));
+  const getCsrfToken = () => {
+    if (!csrfTokenPromise) csrfTokenPromise = fetch(new URL('api/v1/auth/csrf',base), { cache:'no-store', credentials:'same-origin' })
+      .then(async response => { if (!response.ok) throw new Error('csrf unavailable'); const body=await response.json(); if (!body.csrfToken) throw new Error('csrf missing'); return body.csrfToken; })
+      .catch(error => { csrfTokenPromise=null; throw error; });
+    return csrfTokenPromise;
+  };
+  accountSessionPromise.then(value => {
+    if (!local || !value?.authenticated || !value.accountId || !value.loginId || !value.sessionId) {
+      account=null; reset();
+      return;
+    }
+    account=value;
+    session={accountId:account.accountId,userId:account.loginId,sessionId:account.sessionId};
+    view(navigation);
+  }).catch(() => {
+    account=null; reset(); status.textContent='계정 세션을 확인하지 못했습니다. 검색·열람은 계속 이용할 수 있습니다.';
   });
   const deliver = (event, retries = 0) => {
     if (!validSession(session) || !local || pending >= 100) return Promise.resolve(false);
@@ -527,14 +538,20 @@ if (manualContent) {
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 3000);
           try {
+            const token=await getCsrfToken();
             const response = await fetch(new URL('api/v1/events', base), {
-              method:'POST', headers:{ 'Content-Type':'application/json' }, body,
-              signal:controller.signal, keepalive:true, credentials:'omit', redirect:'error'
+              method:'POST', headers:{ 'Content-Type':'application/json','X-CSRF-TOKEN':token }, body,
+              signal:controller.signal, keepalive:true, credentials:'same-origin', redirect:'error'
             });
             const result = await response.json().catch(() => ({}));
             if (response.ok && result.eventId === event.eventId && ['stored', 'duplicate'].includes(result.status)) {
               if (session === owner) status.textContent = '수집 API 저장 확인';
               return true;
+            }
+            if (response.status===401 || ['AUTHENTICATION_REQUIRED','ACCOUNT_IDENTITY_MISMATCH','ACCOUNT_SESSION_MISMATCH','CSRF_TOKEN_INVALID'].includes(result.error?.code)) {
+              account=null; reset(); csrfTokenPromise=null;
+              status.textContent='계정 로그인 세션이 끝나 수집을 중단했습니다. 다시 로그인해 주세요.';
+              return false;
             }
             if (!(response.status >= 500 || result.error?.retryable === true) || attempt === retries) return false;
           } catch (_) {
@@ -552,7 +569,7 @@ if (manualContent) {
   };
   const send = (eventType, payload, eventId = uuid()) => {
     if (!validSession(session) || !local || pending >= 100) return null;
-    const event = { schemaVersion:1, eventId, eventType, occurredAt:new Date().toISOString(), ...session, payload };
+    const event = { schemaVersion:1, eventId, eventType, occurredAt:new Date().toISOString(), userId:session.userId, sessionId:session.sessionId, payload };
     deliver(event).then(ok => { if (!ok && validSession(session)) status.textContent = '전송 실패: 검색·열람은 계속 사용할 수 있습니다.'; });
     return eventId;
   };
@@ -595,10 +612,10 @@ if (manualContent) {
     if (!ratingDialog.open) ratingDialog.showModal();
   };
   const storeViewRecord = record => { activeView = record; safe(() => sessionStorage.setItem(pageViewKey, JSON.stringify(record))); };
-  const viewEvent = record => ({ schemaVersion:1, eventId:record.viewId, eventType:'document_viewed', occurredAt:record.viewOccurredAt, ...session,
+  const viewEvent = record => ({ schemaVersion:1, eventId:record.viewId, eventType:'document_viewed', occurredAt:record.viewOccurredAt, userId:session.userId, sessionId:session.sessionId,
     payload:{ viewId:record.viewId, documentId:record.documentId, documentVersion:record.documentVersion, source:record.source,
       searchId:record.searchId, impressionId:record.impressionId, clickId:record.clickId } });
-  const ratingEvent = record => ({ schemaVersion:1, eventId:record.ratingPending.eventId, eventType:'usefulness_rated', occurredAt:record.ratingPending.occurredAt, ...session,
+  const ratingEvent = record => ({ schemaVersion:1, eventId:record.ratingPending.eventId, eventType:'usefulness_rated', occurredAt:record.ratingPending.occurredAt, userId:session.userId, sessionId:session.sessionId,
     payload:{ viewId:record.viewId, criteriaVersion:1, value:record.ratingPending.value } });
   const persistView = async record => {
     if (record.viewSaved) return true;
@@ -674,29 +691,6 @@ if (manualContent) {
     persistView(record);
     if (linked) setTimeout(() => showRating(record), 5000);
   });
-  ui.addEventListener('submit', event => {
-    event.preventDefault();
-    try {
-      if (!ui.reportValidity()) return;
-      const label = ui.elements.userId.value.trim();
-      if (!validLabel(label)) {
-        ui.elements.userId.setCustomValidity('ID를 1~64자로 입력하세요. 제어문자는 사용할 수 없습니다.');
-        ui.reportValidity(); return;
-      }
-      if (!local) { status.textContent = '수집은 localhost HTTP 실행에서 사용합니다. 검색은 계속 사용할 수 있습니다.'; dialog.close(); return; }
-      startSession(label);
-      dialog.close();
-      status.textContent = '합성 USERID·검색어만 사용하세요. 세션 시작됨';
-      view(null);
-    } catch (_) { reset(); status.textContent = '세션 시작 불가: 브라우저 저장소와 실행 환경을 확인하세요.'; }
-  });
-  ui.elements.userId.addEventListener('input', () => ui.elements.userId.setCustomValidity(''));
-  loginButton.addEventListener('click', () => { dialog.showModal(); ui.elements.userId.focus(); });
-  ui.querySelector('.session-cancel').addEventListener('click', () => dialog.close());
-  dialog.addEventListener('close', () => { if (!session) loginButton.focus(); });
-  logoutButton.addEventListener('click', () => {
-    reset(); ui.elements.userId.value = ''; status.textContent = '로그아웃되었습니다. 검색·열람은 계속 사용할 수 있습니다.'; loginButton.focus();
-  });
   document.addEventListener('click', event => safe(() => {
     if (!validSession(session) || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     const link = event.target.closest('a');
@@ -708,10 +702,6 @@ if (manualContent) {
     if (saved?.clickId && saved.target === canonical(url) && Date.now() - saved.at < 1000) return;
     sessionStorage.setItem(navigationKey, JSON.stringify({ target:canonical(url), at:Date.now(), sessionId:session.sessionId }));
   }));
-  status.textContent = session ? '합성 수집 세션 유지 중' : '합성 USERID로 시작하세요. 시작 전에는 수집하지 않습니다.';
-  if (session) ui.elements.userId.value = session.userId;
-  renderSession();
-  view(navigation);
   return {
     search: (query, matches) => safe(() => {
       if (!validSession(session)) return null;

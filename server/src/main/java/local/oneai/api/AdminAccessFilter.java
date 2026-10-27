@@ -60,7 +60,7 @@ public class AdminAccessFilter extends OncePerRequestFilter {
     private boolean requiresCsrf(HttpServletRequest request,String path) {
         String method=request.getMethod();
         if (method.equals("GET")||method.equals("HEAD")||method.equals("OPTIONS")) return false;
-        boolean authMutation=path.equals("/api/v1/auth/login")||path.equals("/api/v1/auth/register")||path.equals("/api/v1/auth/logout");
+        boolean authMutation=path.equals("/api/v1/auth/login")||path.equals("/api/v1/auth/register")||path.equals("/api/v1/auth/logout")||path.equals("/api/v1/events");
         return authMutation || isAdminPath(path);
     }
 

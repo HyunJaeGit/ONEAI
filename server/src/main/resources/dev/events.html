@@ -52,8 +52,13 @@
     .event-grid th:first-child, .event-grid td:first-child { width: 42px; padding: 0; text-align: center; }
     .results-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 20px 2px 10px; }
     .results-heading h2 { margin: 0; font-size: 1.1rem; }
+    .results-title { display:flex; align-items:center; gap:8px; }
+    .grid-help { position:relative; align-self:center; }
+    .grid-help > summary { display:grid; width:22px; height:22px; place-items:center; border:1px solid #b9b9b9; border-radius:50%; color:#555; font-size:.75rem; font-weight:700; cursor:pointer; list-style:none; }
+    .grid-help > summary::-webkit-details-marker { display:none; }
+    .grid-hint { position:absolute; top:calc(100% + 8px); left:0; z-index:10; width:min(340px,calc(100vw - 48px)); margin:0; padding:10px 12px; border:1px solid #ddd; border-radius:8px; background:#fff; color:#444; box-shadow:0 8px 22px rgb(0 0 0 / 14%); font-size:.82rem; line-height:1.5; }
     #status { margin: 0; color: #536174; font-size: .92rem; }
-    .grid-hint { margin: 0 2px 8px; color: #657286; font-size: .8rem; }
+    .grid-hint { margin:0; color:#444; font-size:.82rem; }
     .grid-shell { max-height: min(68vh, 760px); overflow: auto; border: 1px solid #cbd4df; border-radius: 9px; background: #fff; }
     .event-grid { width: 100%; min-width: 1530px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: .84rem; }
     .event-grid th, .event-grid td { height: 42px; padding: 0 10px; border-right: 1px solid #e0e5eb; border-bottom: 1px solid #e0e5eb; text-align: left; vertical-align: middle; }
@@ -96,6 +101,25 @@
       .grid-shell { max-height: 65vh; }
       .event-grid { min-width: 1530px; }
     }
+    /* Shared project palette: black and yellow with semantic status colors. */
+    :root { color:#242424; background:#fff; }
+    body { background:#fff; color:#242424; }
+    h1,h2,h3,.event-kind,.event-details summary { color:#191919; }
+    .page > header { border-bottom-color:#e3e1d8; }
+    .local-badge { background:#e8f4ed; color:#18794e; }
+    .guide li,.toolbar,.grid-shell,.empty-state { border-color:#e3e1d8; background:#fff; }
+    .guide li::before { background:#fff4ad; color:#191919; }
+    .header-links a,#refresh { border-color:#e0c900; background:#fee500; color:#191919; }
+    .header-links a:hover,#refresh:hover { background:#f2d900; }
+    .field input:focus,.field select:focus,button:focus-visible,a:focus-visible {
+      outline:3px solid #191919; outline-offset:3px; box-shadow:0 0 0 6px #fee500;
+    }
+    .results-tools .delete-button { color:#b42318; border-color:#d99090; }
+    .results-tools .delete-button:hover:not(:disabled) { background:#fff0f0; }
+    .event-grid th { background:#fff4ad; color:#191919; }
+    .event-grid tbody tr:nth-child(even) { background:#faf9f4; }
+    .event-grid tbody tr:hover { background:#fff9cf; }
+    .cell-value.expanded,.event-details pre { border-color:#e3d35b; }
   </style>
 </head>
 <body>
@@ -139,7 +163,7 @@
 
     <section aria-labelledby="events-heading">
       <div class="results-heading">
-        <h2 id="events-heading">최근 이벤트</h2>
+        <div class="results-title"><h2 id="events-heading">최근 이벤트</h2><details class="grid-help"><summary aria-label="표 사용법" title="표 사용법">?</summary><p class="grid-hint">긴 값은 마우스를 올리거나 클릭해 확인할 수 있습니다. 표는 좌우로 이동할 수 있습니다.</p></details></div>
         <p id="status" role="status" aria-live="polite">불러오는 중…</p>
       </div>
       <div class="results-tools" aria-label="이벤트 삭제">
@@ -147,7 +171,6 @@
         <button id="delete-selected" class="delete-button" type="button" disabled>선택 삭제</button>
         <button id="delete-visible" class="delete-button" type="button" disabled>조회된 항목 전체 삭제</button>
       </div>
-      <p class="grid-hint">긴 값은 마우스를 올려 전체 확인하거나 클릭해 셀을 펼칠 수 있습니다. 표 안에서 좌우로 이동할 수 있습니다.</p>
       <div id="grid-shell" class="grid-shell">
         <table class="event-grid" aria-label="최근 수집 이벤트">
           <thead><tr><th>선택</th><th>수신 시각 (한국 시간)</th><th>USERID</th><th>이벤트 종류</th><th>검색어</th><th>sessionId</th><th>searchId</th><th>documentId / 결과</th><th>순위</th><th>평가 기준</th><th>평가</th><th>상세</th></tr></thead>

@@ -12,7 +12,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.sql.DataSource;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -31,38 +30,39 @@ public class AccountService {
 
     private static final int ITERATIONS = 310_000;
     private static final int KEY_BITS = 256;
+    private static final String ADMIN_PIN = "1111";
     private static final SecureRandom RANDOM = new SecureRandom();
     private final JdbcTemplate db;
-    private final String bootstrapPassword;
     private final String dummyHash = hashPassword(UUID.randomUUID().toString());
     private final Map<String,Attempt> attempts = new ConcurrentHashMap<>();
 
-    public AccountService(DataSource source, @Value("${ONEAI_ADMIN_INITIAL_PASSWORD:}") String bootstrapPassword) {
+    public AccountService(DataSource source) {
         this.db = new JdbcTemplate(source);
-        this.bootstrapPassword = bootstrapPassword;
     }
 
-    /** Creates only the first fixed-name administrator; changing the environment value never resets an existing account. */
+    /** Ensures the local fixed administrator account uses its configured four-digit PIN. */
     @EventListener(ApplicationReadyEvent.class)
     public void initializeAdministrator() {
-        if (bootstrapPassword == null || bootstrapPassword.isBlank()) return;
-        if (bootstrapPassword.length() < 4 || bootstrapPassword.length() > 128)
-            throw new IllegalStateException("Invalid initial administrator password configuration");
-        var existing = db.query("SELECT member_type FROM user_accounts WHERE login_id=?", (rs, row) -> rs.getString(1), "admin");
+        var existing = db.query("SELECT member_type,password_hash,is_active FROM user_accounts WHERE login_id=? COLLATE NOCASE",
+            (rs, row) -> new Object[]{rs.getString(1),rs.getString(2),rs.getInt(3)}, "admin");
         if (!existing.isEmpty()) {
-            if (!"ADMIN".equals(existing.getFirst())) throw new IllegalStateException("Reserved administrator login is already assigned");
+            Object[] admin = existing.getFirst();
+            if (!"ADMIN".equals(admin[0])) throw new IllegalStateException("Reserved administrator login is already assigned");
+            if (!verifyPassword(ADMIN_PIN,(String)admin[1]) || ((Integer)admin[2]) != 1)
+                db.update("UPDATE user_accounts SET password_hash=?,updated_at=?,is_active=1 WHERE login_id=? COLLATE NOCASE",
+                    hashPassword(ADMIN_PIN),Instant.now().toString(),"admin");
             return;
         }
         String now = Instant.now().toString();
         db.update("INSERT INTO user_accounts(account_id,login_id,password_hash,member_type,created_at,updated_at,is_active) VALUES(?,?,?,?,?,?,1)",
-            UUID.randomUUID().toString(), "admin", hashPassword(bootstrapPassword), "ADMIN", now, now);
+            UUID.randomUUID().toString(), "admin", hashPassword(ADMIN_PIN), "ADMIN", now, now);
     }
 
     public Account register(String loginId, String password) {
         String normalized = normalizeLogin(loginId);
         if (normalized.equals("admin")) throw new AccountException(409, "LOGIN_ID_UNAVAILABLE");
-        if (password == null || password.length() < 8 || password.length() > 128)
-            throw new AccountException(400, "INVALID_PASSWORD");
+        if (password == null || !password.matches("[0-9]{4}"))
+            throw new AccountException(400, "INVALID_PIN");
         String now = Instant.now().toString();
         try {
             db.update("INSERT INTO user_accounts(account_id,login_id,password_hash,member_type,created_at,updated_at,is_active) VALUES(?,?,?,?,?,?,1)",
@@ -87,7 +87,7 @@ public class AccountService {
             (rs, row) -> new Object[]{rs.getString(1),rs.getString(2),rs.getString(3),rs.getString(4),rs.getInt(5)}, normalized);
         Object[] row = rows.isEmpty() ? null : rows.getFirst();
         String storedHash = row == null ? dummyHash : (String)row[2];
-        boolean valid = password != null && password.length() <= 128 && verifyPassword(password, storedHash);
+        boolean valid = password != null && password.matches("[0-9]{4}") && verifyPassword(password, storedHash);
         if (!valid || row == null || ((Integer)row[4]) != 1) {
             failedAttempt(attemptKey, prior, now);
             throw new AccountException(401, "INVALID_CREDENTIALS");

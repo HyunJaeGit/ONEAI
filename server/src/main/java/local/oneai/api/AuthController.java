@@ -24,6 +24,7 @@ import local.oneai.service.AccountService.AccountException;
 @RestController
 public class AuthController {
     public static final String ACCOUNT_SESSION_KEY = "oneai.accountId";
+    public static final String COLLECTION_SESSION_KEY = "oneai.collectionSessionId";
     public static final String CSRF_SESSION_KEY = "oneai.csrfToken";
     private static final SecureRandom RANDOM = new SecureRandom();
     private final AccountService accounts;
@@ -50,7 +51,11 @@ public class AuthController {
         if (!local(request)) return error(403,"LOCAL_ONLY");
         HttpSession session=request.getSession(false);
         String accountId=session==null?null:(String)session.getAttribute(ACCOUNT_SESSION_KEY);
-        return accounts.findActive(accountId).<ResponseEntity<?>>map(account -> ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(accountBody(account)))
+        return accounts.findActive(accountId).<ResponseEntity<?>>map(account -> {
+            Map<String,Object> body=accountBody(account);
+            body.put("sessionId",session.getAttribute(COLLECTION_SESSION_KEY));
+            return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body);
+        })
             .orElseGet(() -> ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(Map.of("authenticated",false)));
     }
 
@@ -75,8 +80,10 @@ public class AuthController {
             if (previous!=null) previous.invalidate();
             HttpSession session=request.getSession(true);
             session.setAttribute(ACCOUNT_SESSION_KEY,account.accountId());
+            session.setAttribute(COLLECTION_SESSION_KEY,java.util.UUID.randomUUID().toString());
             String token=newToken(); session.setAttribute(CSRF_SESSION_KEY,token);
             Map<String,Object> response=accountBody(account);
+            response.put("sessionId",session.getAttribute(COLLECTION_SESSION_KEY));
             response.put("csrfToken",token);
             response.put("returnTo",safeReturn(body.path("returnTo").asText("")));
             return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(response);

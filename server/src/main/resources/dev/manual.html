@@ -11,26 +11,47 @@
     body { margin:0; }
     button,input,select,textarea { font:inherit; }
     button,a,select,input { min-height:40px; }
-    .page { width:min(100% - 32px,1100px); margin:0 auto; padding:30px 0 56px; }
-    header { margin-bottom:22px; }
-    h1 { margin:0; font-size:clamp(1.5rem,4vw,2rem); }
+    .page { width:min(100% - 32px,1100px); margin:0 auto; padding:14px 0 56px; }
+    .admin-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    h1 { flex:1; margin:0; font-size:clamp(1.2rem,3vw,1.55rem); }
     h2 { margin:0 0 12px; font-size:1.2rem; }
     h3 { margin:0; font-size:1.05rem; }
-    .badge { display:inline-block; margin:10px 0 0; padding:5px 10px; border-radius:999px; background:#fff2d9; color:#76500d; font-size:.82rem; font-weight:700; }
-    .intro,.muted { max-width:780px; color:#536174; line-height:1.6; }
-    .notice { padding:13px 16px; border-left:4px solid #bd7d13; background:#fff8e9; line-height:1.55; }
+    .muted { max-width:780px; color:#536174; line-height:1.6; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    .home-link { display:inline-flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; padding:0 13px; border:1px solid #bdc8d5; border-radius:8px; background:white; color:#244c7c; font-weight:700; text-decoration:none; white-space:nowrap; }
+    .help-popover { position:relative; }
+    .help-popover > summary { display:grid; width:44px; height:44px; place-items:center; border:1px solid #bdc8d5; border-radius:50%; background:white; color:#244c7c; font-size:1.15rem; font-weight:800; cursor:pointer; list-style:none; }
+    .help-popover > summary::-webkit-details-marker { display:none; }
+    .help-panel { position:absolute; top:calc(100% + 8px); right:0; z-index:20; width:min(380px,calc(100vw - 32px)); padding:16px; border:1px solid #d9e0e8; border-radius:10px; background:white; box-shadow:0 12px 30px rgb(28 57 88 / 16%); line-height:1.6; }
+    .help-panel h2 { margin:0 0 8px; font-size:1rem; }
+    .help-panel p { margin:0 0 8px; }
+    .help-panel p:last-child { margin-bottom:0; }
     .panel,.section-card,.block-card { margin-top:14px; padding:16px; border:1px solid #d9e0e8; border-radius:10px; background:white; }
-    .editor-layout { display:grid; grid-template-columns:minmax(210px,260px) minmax(0,1fr); gap:16px; align-items:start; }
-    .minimap { position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto; border:1px solid #d9e0e8; border-radius:9px; background:#f9fbfd; padding:12px; }
+    .document-tools { position:static; padding-block:10px; box-shadow:0 4px 16px rgb(28 57 88 / 9%); }
+    .editor-layout { display:grid; grid-template-columns:minmax(190px,220px) minmax(300px,1fr) minmax(280px,330px); grid-template-areas:'map canvas inspector'; gap:14px; align-items:start; }
+    .minimap { grid-area:map; position:sticky; top:16px; max-height:calc(100vh - 32px); overflow:auto; border:1px solid #d9e0e8; border-radius:9px; background:#f9fbfd; padding:12px; }
     .minimap h3 { margin:0 0 8px; font-size:1rem; }
     .map-list { display:grid; gap:3px; }
     .map-item { display:block; width:100%; min-height:34px; padding:6px 8px; border:0; border-radius:6px; background:transparent; text-align:left; color:#344154; font-size:.85rem; font-weight:500; }
     .map-item:hover { background:#edf3f9; }
     .map-item[aria-current="location"] { background:#e3effb; color:#183f69; font-weight:750; box-shadow:inset 3px 0 #3975ae; }
+    .map-item[aria-pressed="true"] { outline:1px solid #d7bd00; outline-offset:-1px; font-weight:750; }
     .map-item.section-map { margin-top:7px; font-weight:750; }
     .map-item.block-map { padding-left:22px; }
-    .editor-main { min-width:0; }
-    .focus-target { position:relative; z-index:1; transform:scale(1.025); transform-origin:top center; box-shadow:0 0 0 3px #8bb7eb,0 10px 28px rgb(28 57 88 / 16%); transition:transform .18s ease,box-shadow .18s ease; }
+    .editor-main { grid-area:canvas; min-width:0; }
+    .inspector { grid-area:inspector; position:sticky; top:16px; min-width:0; max-height:calc(100vh - 32px); }
+    .inspector-content { display:grid; gap:12px; margin-top:12px; }
+    .inspector-content > .row { display:grid; gap:12px; }
+    .edit-tools { z-index:6; max-height:calc(100vh - 32px); overflow:auto; margin:0; padding:14px; border:1px solid #cbd8e6; border-radius:10px; background:#f4f8fc; box-shadow:0 4px 16px rgb(28 57 88 / 9%); }
+    .edit-tools-head { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+    .edit-tools-head strong { color:#244c7c; }
+    .edit-tools select { width:auto; min-width:180px; flex:1 1 180px; }
+    .selection-help { position:relative; flex:0 0 auto; }
+    .selection-help > summary { display:grid; width:24px; height:24px; place-items:center; border:1px solid #c7c7c7; border-radius:50%; color:#555; font-size:.8rem; font-weight:700; cursor:pointer; list-style:none; }
+    .selection-help > summary::-webkit-details-marker { display:none; }
+    .selection-help-popover { position:absolute; top:calc(100% + 7px); right:0; z-index:30; width:min(280px,calc(100vw - 40px)); padding:10px 12px; border:1px solid #ddd; border-radius:8px; background:#fff; color:#444; box-shadow:0 8px 22px rgb(0 0 0 / 14%); font-size:.82rem; font-weight:400; line-height:1.5; }
+    .selection-card { border-color:#3975ae; box-shadow:0 0 0 2px rgb(57 117 174 / 22%); }
+    .focus-target { position:relative; z-index:1; transform:none; box-shadow:0 0 0 3px #8bb7eb,0 10px 28px rgb(28 57 88 / 16%); transition:box-shadow .18s ease; }
     #focus-indicator { min-height:1.4em; margin:0 0 8px; color:#536174; font-size:.9rem; }
     .section-card { background:#f9fbfd; }
     .block-card { background:#fff; }
@@ -45,7 +66,7 @@
     button.danger { color:#a32929; border-color:#cf8e8e; }
     button:disabled { opacity:.55; cursor:not-allowed; }
     :focus-visible { outline:3px solid #8bb7eb; outline-offset:2px; }
-    #status { min-height:1.5em; margin:12px 0 0; color:#344154; }
+    #status { min-height:1.3em; margin:8px 0 0; color:#344154; }
     #preview { overflow-wrap:anywhere; }
     #preview .table-scroll { max-width:100%; overflow-x:auto; margin-block:16px; }
     #preview table { width:100%; min-width:460px; border-collapse:collapse; }
@@ -69,21 +90,72 @@
     .inline-row { display:grid; grid-template-columns:minmax(130px,1fr) minmax(130px,1fr) auto; gap:8px; align-items:start; margin:8px 0; }
     .pill { font-size:.8rem; color:#536174; background:#edf1f5; padding:4px 8px; border-radius:99px; }
     .preview-help { padding:8px 10px; margin:8px 0; background:#f3f5f7; color:#536174; }
+    .editor-scale { display:flex; align-items:center; gap:8px; color:#4e4e4e; font-size:.84rem; }
+    .editor-scale input { width:120px; min-height:30px; padding:0; accent-color:#c5ad00; }
+    .section-card,.block-card { display:block; }
+    .section-card > summary,.block-card > summary { display:flex; min-height:44px; align-items:center; gap:9px; cursor:pointer; list-style:none; }
+    .section-card > summary::-webkit-details-marker,.block-card > summary::-webkit-details-marker { display:none; }
+    .section-card > summary::before,.block-card > summary::before { content:'▸'; flex:0 0 16px; color:#777; transition:transform .15s ease; }
+    .section-card[open] > summary::before,.block-card[open] > summary::before { transform:rotate(90deg); }
+    .section-card > summary { padding-bottom:8px; border-bottom:1px solid #e3e1d8; }
+    .block-card > summary { margin:-2px 0 10px; border-bottom:1px solid #eeece5; }
+    .drag-grip { display:inline-grid; width:28px; height:32px; place-items:center; border:1px solid #e3e1d8; border-radius:6px; color:#565656; cursor:grab; user-select:none; touch-action:none; }
+    .drag-grip:active { cursor:grabbing; }
+    .dragging { opacity:.45; }
+    .drop-target { outline:2px dashed #c5ad00; outline-offset:2px; }
+    .context-menu { position:fixed; z-index:40; display:grid; min-width:180px; gap:4px; padding:6px; border:1px solid #d9d6c8; border-radius:9px; background:#fff; box-shadow:0 12px 30px rgb(25 25 25 / 18%); }
+    .context-menu[hidden] { display:none; }
+    .context-menu button { justify-content:flex-start; border-color:transparent; text-align:left; }
+    .context-menu button:hover:not(:disabled) { background:#fff4ad; }
     @media print { #preview .table-scroll { overflow:visible; } #preview table { min-width:0; } }
-    @media(max-width:760px) { .editor-layout { grid-template-columns:minmax(0,1fr); } .minimap { position:sticky; top:0; z-index:4; max-height:30vh; } .map-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-    @media(max-width:640px) { .page { padding-top:20px; } .panel,.section-card,.block-card { padding:12px; } .inline-row { grid-template-columns:1fr; } .toolbar button,.toolbar a { flex:1 1 42%; } .item-row,.table-cell-card { grid-template-columns:1fr; } .table-cell-card > strong { grid-column:auto; } .focus-target { transform:none; } }
+    @media(max-width:1000px) { .editor-layout { grid-template-columns:minmax(160px,200px) minmax(0,1fr); grid-template-areas:'map inspector' 'canvas canvas'; } .minimap { position:static; max-height:30vh; } .inspector { position:static; max-height:none; } .edit-tools { max-height:none; } }
+    @media(max-width:640px) { .document-tools { position:static; } .editor-layout { grid-template-columns:minmax(0,1fr); grid-template-areas:'inspector' 'map' 'canvas'; } .minimap { max-height:22vh; } .edit-tools { padding:12px; } .map-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:640px) { .page { padding-top:20px; } .panel,.section-card,.block-card { padding:12px; } .inline-row { grid-template-columns:1fr; } .toolbar button,.toolbar a { flex:1 1 42%; } .item-row,.table-cell-card { grid-template-columns:1fr; } .table-cell-card > strong { grid-column:auto; } .focus-target { transform:none; } .edit-tools { padding:9px; } .edit-tools select { min-width:140px; } }
+    :root { color:#242424; background:#fff; }
+    body { background:#fff; color:#242424; }
+    h1,h2,h3,.edit-tools-head strong { color:#191919; }
+    .home-link,.help-popover > summary,.panel,.section-card,.block-card,.help-panel { border-color:#e3e1d8; }
+    .home-link,.help-popover > summary { color:#191919; }
+    .home-link:hover,.help-popover > summary:hover { background:#fff9cf; }
+    .help-popover > summary { border-color:#d7bd00; }
+    .document-tools { border-top:4px solid #fee500; }
+    .minimap { border-color:#e3e1d8; background:#fff; }
+    .map-item { color:#343434; }
+    .map-item:hover { background:#fff9cf; }
+    .map-item[aria-current="location"] { background:#fff4ad; color:#191919; box-shadow:inset 4px 0 #d7bd00; }
+    .edit-tools { border-color:#e4d76a; background:#fff; }
+    .selection-card { border-color:#d7bd00; box-shadow:0 0 0 2px rgb(254 229 0 / 40%); }
+    .focus-target { box-shadow:0 0 0 3px #fee500,0 10px 28px rgb(25 25 25 / 14%); }
+    .section-card { background:#fff; }
+    .block-card,.help-panel { background:#fff; }
+    input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible,summary:focus-visible { outline:3px solid #191919; outline-offset:3px; box-shadow:0 0 0 6px #fee500; }
+    button.primary { border-color:#e0c900; background:#fee500; color:#191919; }
+    button.primary:hover:not(:disabled) { background:#f2d900; }
+    button.danger { color:#b42318; border-color:#d99090; }
+    .preview-notice { border-left-color:#356c9a; background:#edf5fb; }
+    .preview-notice.warning { border-color:#c48312; background:#fff4df; }
+    .preview-notice.danger { border-color:#b42318; background:#fff0f0; }
+    .pill { color:#4e4e4e; background:#f1f0eb; }
   </style>
 </head>
 <body>
   <main class="page">
-    <header>
+    <header class="admin-header">
       <h1>매뉴얼 관리</h1>
-      <span class="badge">로컬 요청 제한 · ADMIN 로그인 필요</span>
-      <p class="intro">문서를 선택하면 미니맵에 섹션과 블록 순서가 표시됩니다. 항목을 선택해 편집 위치로 이동하고, 제목·문단·목록·안내·표·접기와 제한된 링크·강조를 화면 입력란으로 수정합니다.</p>
-      <p class="notice">관리자 화면과 API에는 loopback 요청 제한과 ADMIN 로그인이 모두 필요합니다. loopback은 로컬 개발 제한이며 운영 배포용 접근 제어를 대신하지 않습니다. 외부 네트워크에 공개하지 마세요. 저장한 변경은 일반 매뉴얼에 즉시 반영됩니다.</p>
+      <details class="help-popover">
+        <summary aria-label="매뉴얼 편집 도움말" title="도움말">?</summary>
+        <div class="help-panel">
+          <h2>편집 도움말</h2>
+          <p>미니맵이나 페이지 구조에서 영역을 클릭하면 오른쪽 속성 패널에서 편집할 수 있습니다. 우클릭 메뉴로 빠른 작업을 열 수도 있습니다. 카드 제목의 손잡이를 드래그해 같은 단계의 섹션·블록 순서를 바꾸고, 키보드는 Shift+F10 또는 Alt+위/아래 화살표를 사용하세요.</p>
+          <p>편집기 크기 조절은 입력 화면만 확대·축소하며 일반 페이지의 출력 크기에는 영향을 주지 않습니다. 저장 전 미리보기에서 화면을 확인할 수 있습니다.</p>
+          <p>문서 ID·버전·경로와 기존 앵커는 직접 바꾸지 않습니다. 삭제한 블록의 앵커는 사라질 수 있습니다. 저장하지 않은 내용은 문서를 바꾸거나 다시 불러올 때 확인하며, 저장 실패 시 입력 내용은 화면에 남습니다.</p>
+          <p>이 페이지와 관리 API는 ADMIN 로그인 및 loopback 요청이 필요합니다. loopback은 로컬 개발 제한이며 운영 배포용 접근 제어를 대신하지 않습니다. 외부 네트워크에 공개하지 마세요. 저장한 변경은 일반 매뉴얼에 즉시 반영됩니다.</p>
+        </div>
+      </details>
+      <a class="home-link" href="/" rel="nofollow">← 홈으로</a>
     </header>
-    <section class="panel" aria-labelledby="select-heading">
-      <h2 id="select-heading">문서 선택</h2>
+    <section class="panel document-tools" aria-labelledby="select-heading">
+      <h2 id="select-heading" class="sr-only">문서 도구</h2>
       <div class="row">
         <div class="grow"><label for="document">관리 가능한 문서</label><select id="document" disabled><option>문서 목록을 불러오는 중입니다.</option></select></div>
         <div id="document-state" class="grow muted" role="status"></div>
@@ -91,24 +163,45 @@
       <p id="status" role="status" aria-live="polite"></p>
       <div class="toolbar">
         <button id="reload" type="button">다시 불러오기</button>
+        <button id="show-preview" type="button" disabled>미리보기</button>
         <button id="save" class="primary" type="button" disabled>저장</button>
         <button id="deactivate" class="danger" type="button" disabled>비활성화</button>
         <button id="reactivate" type="button" disabled>다시 활성화</button>
-        <a href="/" rel="nofollow">매뉴얼 열기</a>
       </div>
     </section>
     <section id="editor-panel" class="panel" aria-labelledby="content-heading" hidden>
       <h2 id="content-heading">본문 편집</h2>
-      <p class="muted">문서 ID·버전·경로와 기존 앵커 ID는 직접 바꾸지 않습니다. 저장 실패 시 입력 중인 내용은 화면에 남습니다. 삭제한 블록의 앵커는 사라질 수 있습니다.</p>
       <div class="editor-layout">
         <nav class="minimap" aria-label="문서 미니맵"><h3>페이지 미니맵</h3><div id="minimap-list" class="map-list"></div></nav>
-        <div class="editor-main"><p id="focus-indicator" role="status" aria-live="polite">미니맵에서 편집할 영역을 선택하세요.</p><div id="editor"></div>
-          <div class="toolbar"><button id="add-section" type="button">섹션 추가</button></div>
+        <div class="editor-main">
+          <p id="focus-indicator" class="sr-only" role="status" aria-live="polite"></p><div id="editor"></div>
+          <div id="selection-menu" class="context-menu" role="group" aria-label="선택 영역 빠른 작업" hidden>
+            <button type="button" data-context-action="add">요소 추가 위치로 이동</button>
+            <button type="button" data-context-action="up">위로 이동</button>
+            <button type="button" data-context-action="down">아래로 이동</button>
+            <button type="button" class="danger" data-context-action="delete">삭제</button>
+          </div>
         </div>
+        <aside class="inspector" aria-label="선택 요소 속성 및 설정">
+          <section id="element-tools" class="edit-tools" aria-label="선택 요소 편집 도구" tabindex="-1">
+            <div class="edit-tools-head"><strong id="selection-label">편집 위치를 선택하세요</strong><details class="selection-help"><summary aria-label="선택 영역 도움말" title="도움말">?</summary><div class="selection-help-popover"><span id="edit-tool-hint" role="status" aria-live="polite"></span></div></details></div>
+            <div class="toolbar">
+              <label class="field-label" for="element-type">요소 유형</label>
+              <select id="element-type" aria-label="추가할 요소 유형"><option value="">유형 선택</option><option value="paragraph">문단</option><option value="heading">제목</option><option value="list">목록</option><option value="notice">안내</option><option value="table">표</option><option value="details">접기/펼치기</option></select>
+              <button id="add-element" type="button" class="primary" disabled>요소 추가</button>
+              <button id="move-up" type="button" disabled>위로</button>
+              <button id="move-down" type="button" disabled>아래로</button>
+              <button id="delete-element" type="button" class="danger" disabled>삭제</button>
+              <button id="add-section" type="button">섹션 추가</button>
+              <label class="editor-scale" for="editor-scale">편집기 크기 <input id="editor-scale" type="range" min="85" max="120" step="5" value="100"><output id="editor-scale-value" for="editor-scale">100%</output></label>
+            </div>
+            <div id="inspector-content" class="inspector-content"></div>
+          </section>
+        </aside>
       </div>
     </section>
     <section id="preview-panel" class="panel" aria-labelledby="preview-heading" hidden>
-      <h2 id="preview-heading">미리보기</h2>
+      <div class="row"><h2 id="preview-heading" class="grow" tabindex="-1">미리보기 · 저장 전 변경 내용</h2><button id="return-editor" type="button">편집기로 돌아가기</button></div>
       <div id="preview"></div>
     </section>
   </main>
@@ -118,13 +211,30 @@
     const select=document.getElementById('document');
     const status=document.getElementById('status');
     const state=document.getElementById('document-state');
+    const helpPopover=document.querySelector('.help-popover');
     const editorRoot=document.getElementById('editor');
+    const inspectorContent=document.getElementById('inspector-content');
     const editorPanel=document.getElementById('editor-panel');
     const previewPanel=document.getElementById('preview-panel');
     const previewRoot=document.getElementById('preview');
     const minimapRoot=document.getElementById('minimap-list');
     const focusIndicator=document.getElementById('focus-indicator');
     const saveButton=document.getElementById('save');
+    const previewButton=document.getElementById('show-preview');
+    const elementType=document.getElementById('element-type');
+    const addElementButton=document.getElementById('add-element');
+    const moveUpButton=document.getElementById('move-up');
+    const moveDownButton=document.getElementById('move-down');
+    const deleteElementButton=document.getElementById('delete-element');
+    const selectionLabel=document.getElementById('selection-label');
+    const editToolHint=document.getElementById('edit-tool-hint');
+    const addSectionButton=document.getElementById('add-section');
+    const editTools=document.getElementById('element-tools');
+    const selectionMenu=document.getElementById('selection-menu');
+    const editorScale=document.getElementById('editor-scale');
+    const editorScaleValue=document.getElementById('editor-scale-value');
+    helpPopover.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();helpPopover.open=false;helpPopover.querySelector('summary').focus();}});
+    document.addEventListener('pointerdown',event=>{if(helpPopover.open&&!helpPopover.contains(event.target))helpPopover.open=false;});
     const deactivateButton=document.getElementById('deactivate');
     const reactivateButton=document.getElementById('reactivate');
     let documents=[];
@@ -134,9 +244,11 @@
     let busy=false;
     let csrfToken='';
     let activeMapKey='doc';
+    let viewportMapKey='doc';
     const documentCache=new Map();
     let anchorListCounter=0;
     let fieldCounter=0;
+    let draggingKey='';
     const clone=value=>JSON.parse(JSON.stringify(value));
     const request=async(url,options={})=>{
       const method=(options.method||'GET').toUpperCase();
@@ -153,31 +265,92 @@
     const node=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el;};
     const button=(label,action,cls='')=>{const el=node('button',cls,label);el.type='button';el.addEventListener('click',action);return el;};
     const blockLabel=block=>({paragraph:'문단',heading:'제목',list:block.listStyle==='ordered'?'번호 목록':'불릿 목록',table:'표',notice:'안내',details:'접기/펼치기'})[block.type]||`보존 · ${block.type||'알 수 없음'}`;
+    const dragGrip=(key,label)=>{const grip=node('span','drag-grip','⠿');grip.draggable=true;grip.dataset.dragKey=key;grip.setAttribute('role','button');grip.tabIndex=0;grip.setAttribute('aria-label',`${label} 순서 이동. 드래그하거나 Alt+위/아래 화살표를 사용하세요.`);grip.addEventListener('click',event=>event.preventDefault());grip.addEventListener('keydown',event=>{if(!event.altKey||!['ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();activeMapKey=key;moveSelection(event.key==='ArrowUp'?-1:1);});return grip;};
     const collectAnchors=content=>{const anchors=[];for(const section of content.sections||[]){if(section.id)anchors.push({id:section.id,label:`섹션 · ${section.title||section.id}`});const visit=blocks=>(blocks||[]).forEach(block=>{if(block.id)anchors.push({id:block.id,label:`${blockLabel(block)} · ${block.id}`});if(block.type==='table')(block.rows||[]).forEach(row=>{if(!Array.isArray(row)&&row.id)anchors.push({id:row.id,label:`표 행 · ${row.id}`});});if(block.type==='details'||block.type==='notice')visit(block.children);});visit(section.blocks);}return anchors;};
+    const sectionKey=section=>`section:${section.id}`;
+    const blockMapKey=(block,parentKey,index)=>block.id?`block:${block.id}`:`${parentKey}-b${index}`;
+    const resolveSelection=()=>{
+      if(!model)return null;
+      if(activeMapKey==='doc')return {kind:'document'};
+      let found=null;
+      const visit=(blocks,section,sectionIndex,parentKey,depth,parentBlock)=>{
+        (blocks||[]).some((block,index)=>{
+          const key=blockMapKey(block,parentKey,index);
+          if(key===activeMapKey){found={kind:'block',block,blocks,index,section,sectionIndex,parentKey,depth,parentBlock};return true;}
+          if((block.type==='details'||block.type==='notice')&&Array.isArray(block.children))return visit(block.children,section,sectionIndex,key,depth+1,block);
+          return false;
+        });
+      };
+      for(const [sectionIndex,section] of (model.sections||[]).entries()){
+        if(sectionKey(section)===activeMapKey)return {kind:'section',section,sectionIndex};
+        visit(section.blocks,section,sectionIndex,sectionKey(section),0,null);
+        if(found)return found;
+      }
+      return null;
+    };
+    const updateSelectionTools=()=>{
+      const selection=resolveSelection();
+      editorPanel.querySelectorAll('[data-map-key]').forEach(element=>element.classList.toggle('selection-card',element.dataset.mapKey===activeMapKey));
+      if(!selection){selectionLabel.textContent='편집 위치를 선택하세요';editToolHint.textContent='미니맵에서 섹션이나 블록을 선택하세요.';elementType.disabled=true;addElementButton.disabled=true;moveUpButton.disabled=true;moveDownButton.disabled=true;deleteElementButton.disabled=true;return;}
+      if(selection.kind==='document'){
+        selectionLabel.textContent='문서 제목 · 부제';editToolHint.textContent='블록을 추가하려면 먼저 미니맵에서 섹션을 선택하세요.';
+      }else if(selection.kind==='section'){
+        selectionLabel.textContent=`섹션 · ${selection.section.title||'제목 없음'}`;editToolHint.textContent='새 요소는 선택한 섹션의 마지막에 추가됩니다.';
+      }else{
+        selectionLabel.textContent=`${blockLabel(selection.block)}${selection.block.id?` · #${selection.block.id}`:''}`;
+        const container=Array.isArray(selection.block.children)&&(selection.block.type==='details'||selection.block.type==='notice');
+        editToolHint.textContent=container?'새 요소는 선택한 접기/안내 블록의 내부 마지막에 추가됩니다.':`새 요소는 선택한 블록 바로 아래에 추가됩니다.${selection.depth>0?' 접기/펼치기는 최상위 섹션에서만 추가할 수 있습니다.':''}`;
+      }
+      const canInsert=selection.kind==='section'||selection.kind==='block';
+      const detailsOption=elementType.querySelector('option[value="details"]');
+      const insertingInsideContainer=selection.kind==='block'&&Array.isArray(selection.block.children)&&(selection.block.type==='details'||selection.block.type==='notice');
+      const insertionDepth=selection.kind==='block'?selection.depth+(insertingInsideContainer?1:0):0;
+      detailsOption.disabled=insertionDepth>0;
+      if(detailsOption.disabled&&elementType.value==='details')elementType.value='';
+      elementType.disabled=!canInsert;
+      addElementButton.disabled=!canInsert||!elementType.value||busy||!selected?.active;
+      const items=selection.kind==='section'?model.sections:selection.kind==='block'?selection.blocks:null;
+      const index=selection.kind==='section'?selection.sectionIndex:selection.kind==='block'?selection.index:-1;
+      moveUpButton.disabled=!items||index<=0||busy||!selected?.active;
+      moveDownButton.disabled=!items||index<0||index>=items.length-1||busy||!selected?.active;
+      deleteElementButton.disabled=!items||busy||!selected?.active||(selection.kind==='section'&&model.sections.length<=1);
+      if(selection.kind==='section'&&model.sections.length<=1)editToolHint.textContent='문서는 섹션을 하나 이상 유지해야 하므로 마지막 섹션은 삭제할 수 없습니다.';
+    };
     const getDocumentForAnchors=async documentId=>{if(documentCache.has(documentId))return documentCache.get(documentId);const content=documentId===selected?.documentId?model:await request(`${endpoint}/${encodeURIComponent(documentId)}`);documentCache.set(documentId,content);return content;};
     const renderMiniMap=()=>{
       minimapRoot.replaceChildren();
       if(!model)return;
-      const add=(key,label,cls='')=>{const item=button(label,()=>selectMapItem(key),`map-item ${cls}`);item.dataset.mapKey=key;item.setAttribute('aria-current',key===activeMapKey?'location':'false');minimapRoot.append(item);};
+      const add=(key,label,cls='')=>{const item=button(label,()=>selectMapItem(key),`map-item ${cls}`);item.dataset.mapKey=key;item.setAttribute('aria-current',key===viewportMapKey?'location':'false');item.setAttribute('aria-pressed',String(key===activeMapKey));minimapRoot.append(item);};
       add('doc',model.title||'문서 제목');
-      const visit=(blocks,parentKey,depth)=>blocks.forEach((block,index)=>{const key=`${parentKey}-b${index}`;add(key,`${blockLabel(block)}${block.id?` · #${block.id}`:''}`,'block-map');if((block.type==='details'||block.type==='notice')&&Array.isArray(block.children)&&depth<3)visit(block.children,key,depth+1);});
-      (model.sections||[]).forEach((section,index)=>{const key=`s${index}`;add(key,`섹션 ${index+1} · ${section.title||'제목 없음'}`,'section-map');visit(section.blocks||[],key,0);});
+      const visit=(blocks,parentKey,depth)=>blocks.forEach((block,index)=>{const key=blockMapKey(block,parentKey,index);add(key,`${blockLabel(block)}${block.id?` · #${block.id}`:''}`,'block-map');if((block.type==='details'||block.type==='notice')&&Array.isArray(block.children)&&depth<3)visit(block.children,key,depth+1);});
+      (model.sections||[]).forEach((section,index)=>{const key=sectionKey(section);add(key,`섹션 ${index+1} · ${section.title||'제목 없음'}`,'section-map');visit(section.blocks||[],key,0);});
       if(!minimapRoot.querySelector(`[data-map-key="${CSS.escape(activeMapKey)}"]`))activeMapKey='doc';
-      minimapRoot.querySelectorAll('.map-item').forEach(item=>item.setAttribute('aria-current',item.dataset.mapKey===activeMapKey?'location':'false'));
+      if(!minimapRoot.querySelector(`[data-map-key="${CSS.escape(viewportMapKey)}"]`))viewportMapKey='doc';
+      minimapRoot.querySelectorAll('.map-item').forEach(item=>{item.setAttribute('aria-current',item.dataset.mapKey===viewportMapKey?'location':'false');item.setAttribute('aria-pressed',String(item.dataset.mapKey===activeMapKey));});
     };
     const selectMapItem=key=>{
-      activeMapKey=key;renderMiniMap();
-      const target=key==='doc'?editorRoot.querySelector('[data-map-key="doc"]'):editorRoot.querySelector(`[data-map-key="${CSS.escape(key)}"]`);
+      activeMapKey=key;viewportMapKey=key;renderEditor();renderMiniMap();
+      const target=key==='doc'?inspectorContent.querySelector('[data-map-key="doc"]'):editorRoot.querySelector(`[data-map-key="${CSS.escape(key)}"]`);
       if(!target)return;
+      for(let parent=target.closest('details');parent;parent=parent.parentElement?.closest('details'))parent.open=true;
+      updateSelectionTools();
       focusIndicator.textContent=key==='doc'?'문서 제목·부제를 편집합니다.':target.querySelector('h3')?.textContent||target.querySelector('strong')?.textContent||'선택한 영역을 편집합니다.';
       target.scrollIntoView({behavior:'smooth',block:'center'});target.classList.add('focus-target');window.setTimeout(()=>target.classList.remove('focus-target'),1400);
-      (target.querySelector('input,textarea,select')||target.querySelector('button'))?.focus({preventScroll:true});
+      (inspectorContent.querySelector('input,textarea,select')||target.querySelector('input,textarea,select,button'))?.focus({preventScroll:true});
     };
     const syncMiniMapToScroll=()=>{
       if(!model)return;
       const regions=[...editorRoot.querySelectorAll('[data-map-key]')];let best=null,bestDistance=Infinity;const guide=window.innerHeight*.35;
       for(const region of regions){const rect=region.getBoundingClientRect();if(rect.bottom<0||rect.top>window.innerHeight)continue;const distance=Math.abs(rect.top-guide);if(distance<bestDistance){best=region;bestDistance=distance;}}
-      if(best&&best.dataset.mapKey!==activeMapKey){activeMapKey=best.dataset.mapKey;renderMiniMap();}
+      if(!best||best.dataset.mapKey===viewportMapKey)return;
+      const current=editorRoot.querySelector(`[data-map-key="${CSS.escape(viewportMapKey)}"]`);
+      const currentRect=current?.getBoundingClientRect();
+      const currentVisible=currentRect&&currentRect.bottom>=0&&currentRect.top<=window.innerHeight;
+      const currentDistance=currentVisible?Math.abs(currentRect.top-guide):Infinity;
+      if(!currentVisible||bestDistance+28<currentDistance){
+        viewportMapKey=best.dataset.mapKey;
+        minimapRoot.querySelectorAll('.map-item').forEach(item=>item.setAttribute('aria-current',item.dataset.mapKey===viewportMapKey?'location':'false'));
+      }
     };
     const field=(label,value,onChange,opts={})=>{
       const wrap=node('div'); const input=node(opts.multiline?'textarea':'input');input.id=`manual-field-${++fieldCounter}`;
@@ -186,19 +359,95 @@
       input.addEventListener(opts.multiline?'input':'input',()=>onChange(input.value));
       return wrap;
     };
-    const changed=()=>{saveButton.disabled=!selected||!selected.active||busy;};
     const hasChanges=()=>model&&JSON.stringify(model)!==baseline;
     const updateState=()=>{
-      if(!selected){state.textContent='';editorPanel.hidden=true;previewPanel.hidden=true;saveButton.disabled=true;deactivateButton.disabled=true;reactivateButton.disabled=true;return;}
-      state.textContent=`${selected.title} · ${selected.documentId} · ${selected.active?'활성':'비활성'} · ${selected.documentVersion}`;
+      if(!selected){state.textContent='';editorPanel.hidden=true;previewPanel.hidden=true;saveButton.disabled=true;previewButton.disabled=true;deactivateButton.disabled=true;reactivateButton.disabled=true;addSectionButton.disabled=true;updateSelectionTools();return;}
+      state.textContent=`${model?.title||selected.title} · ${selected.documentId} · ${selected.active?'활성':'비활성'} · ${selected.documentVersion}${hasChanges()?' · 저장되지 않은 변경':''}`;
       editorPanel.hidden=!model;previewPanel.hidden=!model;
       saveButton.disabled=!selected.active||busy;
+      previewButton.disabled=!model;
+      addSectionButton.disabled=!model||!selected.active||busy;
       deactivateButton.disabled=!selected.active||busy;
       reactivateButton.disabled=selected.active||busy;
+      updateSelectionTools();
     };
     const id=(prefix,items)=>{const used=new Set();const visit=blocks=>(blocks||[]).forEach(block=>{if(block.id)used.add(block.id);if(block.type==='details'||block.type==='notice')visit(block.children);if(block.type==='table')(block.rows||[]).forEach(row=>{if(row.id)used.add(row.id);});});(model?.sections||[]).forEach(section=>{used.add(section.id);visit(section.blocks);});(items||[]).forEach(item=>item.id&&used.add(item.id));let n=1,candidate='';do{candidate=`${prefix}-${String(n++).padStart(2,'0')}`;}while(used.has(candidate));return candidate;};
     const move=(items,index,delta,resetMap=false)=>{const target=index+delta;if(target<0||target>=items.length)return;const [item]=items.splice(index,1);items.splice(target,0,item);items.forEach((entry,i)=>{if(Number.isInteger(entry.order))entry.order=i+1;});if(resetMap)activeMapKey='doc';renderEditor();renderPreview();};
     const actionBar=(items,index,removeLabel='삭제',resetMap=true)=>{const bar=node('div','actions');bar.append(button('위로',()=>move(items,index,-1,resetMap)),button('아래로',()=>move(items,index,1,resetMap)),button(removeLabel,()=>{if(!window.confirm('이 항목을 삭제할까요? 기존 앵커가 제거될 수 있습니다.'))return;items.splice(index,1);if(resetMap)activeMapKey='doc';renderEditor();renderPreview();},'danger'));return bar;};
+    const createBlock=(type,blocks)=>{
+      const fresh={id:id('block',blocks),type,order:blocks.length+1};
+      if(type==='paragraph')fresh.content=[{type:'text',value:''}];
+      if(type==='heading'){fresh.level=3;fresh.text='';}
+      if(type==='list'){fresh.listStyle='unordered';fresh.items=[[{type:'text',value:''}]];}
+      if(type==='notice'){fresh.variant='reference';fresh.content=[{type:'text',value:''}];}
+      if(type==='table'){fresh.caption='새 표';fresh.columns=[{key:'c1',label:'열 1',header:true}];fresh.rows=[];}
+      if(type==='details'){fresh.summary='';fresh.children=[];}
+      return fresh;
+    };
+    const insertElement=()=>{
+      const selection=resolveSelection();
+      if(!selection||!['section','block'].includes(selection.kind)){editToolHint.textContent='요소를 넣을 섹션이나 블록을 미니맵에서 먼저 선택하세요.';return;}
+      const type=elementType.value;if(!type)return;
+      if(type==='details'&&selection.kind==='block'&&selection.depth>0){editToolHint.textContent='접기/펼치기는 섹션 본문 위치에 추가할 수 있습니다.';return;}
+      const insertingInsideContainer=selection.kind==='block'&&Array.isArray(selection.block.children)&&(selection.block.type==='details'||selection.block.type==='notice');
+      const blocks=selection.kind==='section'?selection.section.blocks:insertingInsideContainer?selection.block.children:selection.blocks;
+      const index=selection.kind==='section'||insertingInsideContainer?blocks.length:selection.index+1;
+      const fresh=createBlock(type,blocks);blocks.splice(index,0,fresh);blocks.forEach((block,order)=>block.order=order+1);
+      const parentKey=selection.kind==='section'?sectionKey(selection.section):insertingInsideContainer?blockMapKey(selection.block,selection.parentKey,selection.index):selection.parentKey;
+      activeMapKey=blockMapKey(fresh,parentKey,index);
+      renderEditor();renderPreview();selectMapItem(activeMapKey);
+    };
+    const moveSelection=delta=>{
+      const selection=resolveSelection();if(!selection||!['section','block'].includes(selection.kind))return;
+      const items=selection.kind==='section'?model.sections:selection.blocks;
+      const index=selection.kind==='section'?selection.sectionIndex:selection.index;
+      const target=index+delta;if(target<0||target>=items.length)return;
+      const [item]=items.splice(index,1);items.splice(target,0,item);items.forEach((entry,order)=>entry.order=order+1);
+      if(selection.kind==='block')activeMapKey=blockMapKey(selection.block,selection.parentKey,target);
+      renderEditor();renderPreview();selectMapItem(activeMapKey);
+    };
+    const selectionAtKey=key=>{const previous=activeMapKey;activeMapKey=key;const selection=resolveSelection();activeMapKey=previous;return selection;};
+    const reorderByDrop=(sourceKey,targetKey,after)=>{
+      if(!sourceKey||!targetKey||sourceKey===targetKey)return;
+      const source=selectionAtKey(sourceKey),target=selectionAtKey(targetKey);
+      if(!source||!target||source.kind!==target.kind||!['section','block'].includes(source.kind))return;
+      const sourceItems=source.kind==='section'?model.sections:source.blocks;
+      const targetItems=target.kind==='section'?model.sections:target.blocks;
+      if(sourceItems!==targetItems)return;
+      const [item]=sourceItems.splice(source.kind==='section'?source.sectionIndex:source.index,1);
+      let index=(target.kind==='section'?target.sectionIndex:target.index)+(after?1:0);
+      if((source.kind==='section'?source.sectionIndex:source.index)<index)index--;
+      sourceItems.splice(Math.max(0,Math.min(index,sourceItems.length)),0,item);
+      sourceItems.forEach((entry,order)=>entry.order=order+1);
+      activeMapKey=source.kind==='section'?sectionKey(item):blockMapKey(item,source.parentKey,sourceItems.indexOf(item));
+      renderEditor();renderPreview();selectMapItem(activeMapKey);
+    };
+    const openSelectionMenu=(key,x,y)=>{
+      if(!key||key==='doc')return;
+      activeMapKey=key;viewportMapKey=key;renderEditor();renderMiniMap();updateSelectionTools();
+      const selection=resolveSelection();if(!selection||!['section','block'].includes(selection.kind))return;
+      const up=selectionMenu.querySelector('[data-context-action="up"]'),down=selectionMenu.querySelector('[data-context-action="down"]'),remove=selectionMenu.querySelector('[data-context-action="delete"]');
+      const items=selection.kind==='section'?model.sections:selection.blocks,index=selection.kind==='section'?selection.sectionIndex:selection.index;
+      up.disabled=index<=0;down.disabled=index>=items.length-1;remove.disabled=selection.kind==='section'&&model.sections.length<=1;
+      selectionMenu.hidden=false;
+      const left=Math.max(8,Math.min(x,window.innerWidth-selectionMenu.offsetWidth-8));
+      const top=Math.max(8,Math.min(y,window.innerHeight-selectionMenu.offsetHeight-8));
+      selectionMenu.style.left=`${left}px`;selectionMenu.style.top=`${top}px`;
+      selectionMenu.querySelector('button:not(:disabled)')?.focus();
+    };
+    const deleteSelection=()=>{
+      const selection=resolveSelection();if(!selection||!['section','block'].includes(selection.kind))return;
+      if(selection.kind==='section'&&model.sections.length<=1){editToolHint.textContent='문서는 섹션을 하나 이상 유지해야 하므로 마지막 섹션은 삭제할 수 없습니다.';return;}
+      const label=selection.kind==='section'?`섹션 “${selection.section.title||'제목 없음'}”`:`${blockLabel(selection.block)} 블록`;
+      if(!window.confirm(`${label}을(를) 삭제할까요? 해당 앵커 링크가 사라질 수 있습니다.`))return;
+      if(selection.kind==='block'){
+        selection.blocks.splice(selection.index,1);selection.blocks.forEach((block,order)=>block.order=order+1);activeMapKey=selection.parentKey;
+      }else{
+        model.sections.splice(selection.sectionIndex,1);model.sections.forEach((section,order)=>section.order=order+1);
+        const next=model.sections[Math.min(selection.sectionIndex,model.sections.length-1)];activeMapKey=next?sectionKey(next):'doc';
+      }
+      renderEditor();renderPreview();selectMapItem(activeMapKey);
+    };
     const allowedInline=['text','strong','link'];
     const renderInlineEditor=(host,items,onUpdate)=>{
       const list=node('div','items');
@@ -286,12 +535,11 @@
         });rows.append(rowCard);
       });
       rows.append(button('행 추가',()=>{block.rows.push(block.columns.map(()=>newCell()));renderEditor();renderPreview();}));parent.append(rows);
-      if(!block.rows.length)parent.append(node('p','muted','표에 행이 없습니다. 행 추가를 눌러 셀을 입력하세요.'));
     };
-    const renderBlock=(parent,block,blocks,index,depth,mapKey)=>{
-      const card=node('article','block-card');card.dataset.mapKey=mapKey;
-      const title=node('div','row');title.append(node('strong','',`${block.type||'알 수 없는 형식'}${block.id?` · #${block.id}`:''}`));if(block.type==='table'||block.type==='details'||!['paragraph','heading','list','notice'].includes(block.type))title.append(node('span','pill','내용 보존'));card.append(title);
-      card.append(actionBar(blocks,index));
+    const renderBlock=(parent,block,blocks,index,depth,parentKey)=>{
+      const mapKey=blockMapKey(block,parentKey,index);
+      const card=node('details','block-card');card.dataset.mapKey=mapKey;card.open=activeMapKey===mapKey;
+      const title=node('summary');title.append(dragGrip(mapKey,blockLabel(block)),node('strong','',`${blockLabel(block)}${block.id?` · #${block.id}`:''}`));if(block.type==='table'||block.type==='details'||!['paragraph','heading','list','notice'].includes(block.type))title.append(node('span','pill','내용 보존'));card.append(title);
       if(block.type==='paragraph')paragraphEditor(card,block);
       else if(block.type==='heading'){
         const sel=node('select');for(const level of [3,4]){const option=node('option','',`제목 ${level}`);option.value=String(level);sel.append(option);}sel.value=String(block.level||3);sel.addEventListener('change',()=>{block.level=Number(sel.value);renderPreview();});card.append(field('제목 문구',block.text||'',v=>{block.text=v;renderPreview();}));card.append(sel);
@@ -301,25 +549,33 @@
         card.append(list,button('목록 항목 추가',()=>{block.items=block.items||[];block.items.push([{type:'text',value:''}]);renderEditor();renderPreview();}));
       }else if(block.type==='notice'){
         const kind=node('select');for(const value of ['warning','check','reference']){const option=node('option','',value);option.value=value;kind.append(option);}kind.value=block.variant||'reference';kind.addEventListener('change',()=>{block.variant=kind.value;renderPreview();});card.append(field('안내 제목 (선택)',block.title||'',v=>{if(v.trim())block.title=v;else delete block.title;renderPreview();}),kind);
-        if(Array.isArray(block.children))renderBlockArray(card,block.children,depth+1,false,mapKey);else renderInlineEditor(card,block.content,renderPreview);
+        if(Array.isArray(block.children))renderBlockArray(card,block.children,depth+1,mapKey);else renderInlineEditor(card,block.content,renderPreview);
       }else if(block.type==='details'){
         card.append(field('접기 제목',block.summary||'',v=>{block.summary=v;renderPreview();}));
-        if(Array.isArray(block.children))renderBlockArray(card,block.children,depth+1,false,mapKey);
-        card.append(button('내부 문단 추가',()=>{block.children=block.children||[];block.children.push({type:'paragraph',order:block.children.length+1,content:[{type:'text',value:''}]});renderEditor();renderPreview();}));
+        if(Array.isArray(block.children))renderBlockArray(card,block.children,depth+1,mapKey);
       }else if(block.type==='table')tableEditor(card,block);
       else card.append(node('p','muted','현재 편집기에서 수정하지 않는 콘텐츠입니다. 기존 데이터 그대로 보존됩니다.'));
       parent.append(card);
     };
-    function renderBlockArray(parent,blocks,depth,allowDetails,parentKey){
-      blocks.forEach((block,index)=>renderBlock(parent,block,blocks,index,depth,`${parentKey}-b${index}`));
-      if(depth>2)return;
-      const add=node('div','toolbar');
-      for(const [label,type] of [['문단','paragraph'],['제목','heading'],['목록','list'],['안내','notice'],['표','table']])add.append(button(`+ ${label}`,()=>{const fresh={id:id('block',blocks),type,order:blocks.length+1};if(type==='paragraph')fresh.content=[{type:'text',value:'문단 내용을 입력하세요.'}];if(type==='heading'){fresh.level=3;fresh.text='제목을 입력하세요.';}if(type==='list'){fresh.listStyle='unordered';fresh.items=[[{type:'text',value:'목록 항목'}]];}if(type==='notice'){fresh.variant='reference';fresh.content=[{type:'text',value:'안내 내용을 입력하세요.'}];}if(type==='table'){fresh.caption='새 표';fresh.columns=[{key:'c1',label:'열 1',header:true}];fresh.rows=[];}blocks.push(fresh);renderEditor();renderPreview();}));
-      if(allowDetails)add.append(button('+ 접기/펼치기',()=>{const children=[];blocks.push({id:id('block',blocks),type:'details',order:blocks.length+1,summary:'접기 제목',children});renderEditor();renderPreview();}));
-      parent.append(add);
+    function renderBlockArray(parent,blocks,depth,parentKey){
+      blocks.forEach((block,index)=>renderBlock(parent,block,blocks,index,depth,parentKey));
     }
+    const renderInspector=()=>{
+      inspectorContent.replaceChildren();
+      inspectorContent.dataset.mapKey=activeMapKey;
+      if(!model)return;
+      const selection=resolveSelection();
+      if(!selection)return;
+      const target=selection.kind==='document'
+        ?editorRoot.querySelector('[data-map-key="doc"]')
+        :editorRoot.querySelector(`[data-map-key="${CSS.escape(activeMapKey)}"]`);
+      if(!target){inspectorContent.append(node('p','muted','선택한 영역의 설정을 찾을 수 없습니다.'));return;}
+      if(selection.kind==='document'){inspectorContent.append(target);return;}
+      const summary=[...target.children].find(child=>child.tagName==='SUMMARY');
+      [...target.children].forEach(child=>{if(child!==summary)inspectorContent.append(child);});
+    };
     const renderEditor=()=>{
-      if(!model){editorRoot.replaceChildren();renderMiniMap();updateState();return;}
+      if(!model){editorRoot.replaceChildren();renderInspector();renderMiniMap();updateState();return;}
       editorRoot.replaceChildren();
       const rootFields=node('div','row');
       rootFields.dataset.mapKey='doc';
@@ -328,12 +584,13 @@
       const leadEditor=node('div');leadEditor.append(node('label','field-label','짧은 설명 (선택)'));model.lead=model.lead||[];renderInlineEditor(leadEditor,model.lead,renderPreview);rootFields.append(leadEditor);
       editorRoot.append(rootFields);
       (model.sections||[]).forEach((section,index)=>{
-        const card=node('section','section-card');card.dataset.mapKey=`s${index}`;const heading=node('div','row');heading.append(node('h3','grow',`섹션 ${index+1}`));heading.append(actionBar(model.sections,index,'섹션 삭제'));card.append(heading);
+        const key=sectionKey(section);const card=node('details','section-card');card.dataset.mapKey=key;card.open=activeMapKey===key;
+        const heading=node('summary');heading.append(dragGrip(key,`섹션 ${index+1}`),node('h3','grow',`섹션 ${index+1} · ${section.title||'제목 없음'}`));card.append(heading);
         card.append(field('섹션 제목',section.title||'',v=>{section.title=v;renderPreview();}));
         if(section.helpTip!==undefined)card.append(field('도움말 (선택)',section.helpTip||'',v=>{if(v.trim())section.helpTip=v;else delete section.helpTip;renderPreview();},{multiline:true}));
-        renderBlockArray(card,section.blocks||[],0,true,`s${index}`);editorRoot.append(card);
+        renderBlockArray(card,section.blocks||[],0,sectionKey(section));editorRoot.append(card);
       });
-      renderMiniMap();updateState();
+      renderInspector();renderMiniMap();updateState();
     };
     const renderPreviewBlock=(parent,block)=>{
       const childIndex=parent.childElementCount;
@@ -352,7 +609,7 @@
     };
     const renderPreview=()=>{
       if(!model)return;previewRoot.replaceChildren();const heading=node('div','page-heading');const eyebrow=model.eyebrow||(selected?.documentId==='school-schedule'?'학교 측 업무 프로세스 · 03단계':'');if(eyebrow)heading.append(node('p','eyebrow',eyebrow));heading.append(node('h1','',model.title||''));if(model.lead?.length){const lead=node('p');renderInlinePreview(lead,model.lead);heading.append(lead);}previewRoot.append(heading);
-      (model.sections||[]).forEach(section=>{const part=node('section','manual-section');part.id=section.id||'';if(section.helpTip){const titleRow=node('div','section-heading');titleRow.append(node('h2','',section.title||''));const tip=node('details',`help-tip${section.helpTipAlignment==='left'?' help-tip-left':''}`);const summary=node('summary','?');summary.setAttribute('aria-label',`${section.title||'섹션'} 설명 보기`);tip.append(summary,node('p','',section.helpTip));titleRow.append(tip);part.append(titleRow);}else part.append(node('h2','',section.title||''));(section.blocks||[]).forEach(block=>renderPreviewBlock(part,block));if(section.variant==='supplementary')part.classList.add('supplementary-section');previewRoot.append(part);});renderMiniMap();
+      (model.sections||[]).forEach(section=>{const part=node('section','manual-section');part.id=section.id||'';if(section.helpTip){const titleRow=node('div','section-heading');titleRow.append(node('h2','',section.title||''));const tip=node('details',`help-tip${section.helpTipAlignment==='left'?' help-tip-left':''}`);const summary=node('summary','?');summary.setAttribute('aria-label',`${section.title||'섹션'} 설명 보기`);tip.append(summary,node('p','',section.helpTip));titleRow.append(tip);part.append(titleRow);}else part.append(node('h2','',section.title||''));(section.blocks||[]).forEach(block=>renderPreviewBlock(part,block));if(section.variant==='supplementary')part.classList.add('supplementary-section');previewRoot.append(part);});renderMiniMap();updateState();
     };
     const normalizeOrders=blocks=>{blocks.forEach((block,index)=>{block.order=index+1;if((block.type==='details'||block.type==='notice')&&Array.isArray(block.children))normalizeOrders(block.children);});};
     const validate=()=>{
@@ -380,7 +637,7 @@
       selected=documents.find(item=>item.documentId===select.value)||null;model=null;baseline='';updateState();
       if(!selected)return;
       status.textContent='문서를 불러오는 중입니다.';busy=true;updateState();
-      try{const value=await request(`${endpoint}/${encodeURIComponent(selected.documentId)}`);model=clone(value);documentCache.set(selected.documentId,model);activeMapKey='doc';baseline=JSON.stringify(model);renderEditor();renderPreview();status.textContent='문서를 불러왔습니다. 미니맵에서 영역을 선택해 편집하세요.';}
+      try{const value=await request(`${endpoint}/${encodeURIComponent(selected.documentId)}`);model=clone(value);documentCache.set(selected.documentId,model);activeMapKey='doc';viewportMapKey='doc';baseline=JSON.stringify(model);renderEditor();renderPreview();status.textContent='불러오기 완료.';}
       catch(error){model=null;renderEditor();status.textContent=`문서를 불러오지 못했습니다: ${error.message}`;}
       finally{busy=false;updateState();}
     };
@@ -411,9 +668,64 @@
     select.addEventListener('change',loadDocument);
     document.getElementById('reload').addEventListener('click',loadList);
     saveButton.addEventListener('click',save);
+    previewButton.addEventListener('click',()=>{previewPanel.scrollIntoView({behavior:'smooth',block:'start'});document.getElementById('preview-heading').focus({preventScroll:true});});
+    document.getElementById('return-editor').addEventListener('click',()=>{editTools.scrollIntoView({behavior:'smooth',block:'start'});editTools.focus({preventScroll:true});});
     deactivateButton.addEventListener('click',()=>changeActive(false));
     reactivateButton.addEventListener('click',()=>changeActive(true));
-    document.getElementById('add-section').addEventListener('click',()=>{model.sections.push({id:id('section',model.sections),order:model.sections.length+1,title:'새 섹션',blocks:[]});activeMapKey='doc';renderEditor();renderPreview();});
+    selectionMenu.addEventListener('click',event=>{
+      const action=event.target.closest('[data-context-action]')?.dataset.contextAction;if(!action)return;
+      selectionMenu.hidden=true;
+      if(action==='add'){editTools.scrollIntoView({behavior:'smooth',block:'start'});elementType.focus();}
+      else if(action==='up')moveSelection(-1);
+      else if(action==='down')moveSelection(1);
+      else if(action==='delete')deleteSelection();
+    });
+    editorPanel.addEventListener('click',event=>{
+      const grip=event.target.closest('.drag-grip');if(grip)return;
+      const summary=event.target.closest('summary');const region=summary?.closest('[data-map-key]');
+      if(region)selectMapItem(region.dataset.mapKey);
+    });
+    editorPanel.addEventListener('contextmenu',event=>{
+      const region=event.target.closest('[data-map-key]');
+      if(!region||!editorPanel.contains(region)||event.target.closest('input,textarea,select,button'))return;
+      event.preventDefault();openSelectionMenu(region.dataset.mapKey,event.clientX,event.clientY);
+    });
+    editorPanel.addEventListener('keydown',event=>{
+      if(!((event.shiftKey&&event.key==='F10')||event.key==='ContextMenu'))return;
+      if(event.target.closest('input,textarea,select,button'))return;
+      const region=event.target.closest('[data-map-key]');if(!region)return;
+      event.preventDefault();const rect=region.getBoundingClientRect();openSelectionMenu(region.dataset.mapKey,rect.left+24,rect.top+24);
+    });
+    document.addEventListener('pointerdown',event=>{if(!selectionMenu.hidden&&!selectionMenu.contains(event.target))selectionMenu.hidden=true;});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!selectionMenu.hidden){selectionMenu.hidden=true;editorPanel.querySelector(`[data-map-key="${CSS.escape(activeMapKey)}"] > summary`)?.focus();}});
+    editorPanel.addEventListener('dragstart',event=>{
+      const grip=event.target.closest('[data-drag-key]');if(!grip)return;
+      draggingKey=grip.dataset.dragKey;event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',draggingKey);
+      const source=editorPanel.querySelector(`[data-map-key="${CSS.escape(draggingKey)}"]`);source?.classList.add('dragging');
+    });
+    editorPanel.addEventListener('dragover',event=>{
+      const target=event.target.closest('[data-map-key]');if(!draggingKey||!target||target.dataset.mapKey===draggingKey)return;
+      const from=selectionAtKey(draggingKey),to=selectionAtKey(target.dataset.mapKey);
+      if(!from||!to||from.kind!==to.kind||(from.kind==='block'&&from.blocks!==to.blocks))return;
+      event.preventDefault();event.dataTransfer.dropEffect='move';editorPanel.querySelectorAll('.drop-target').forEach(item=>item.classList.remove('drop-target'));target.classList.add('drop-target');
+    });
+    editorPanel.addEventListener('drop',event=>{
+      const target=event.target.closest('[data-map-key]');if(!draggingKey||!target)return;
+      event.preventDefault();const rect=target.getBoundingClientRect();reorderByDrop(draggingKey,target.dataset.mapKey,event.clientY>rect.top+rect.height/2);
+      draggingKey='';editorPanel.querySelectorAll('.dragging,.drop-target').forEach(item=>item.classList.remove('dragging','drop-target'));
+    });
+    editorPanel.addEventListener('dragend',()=>{draggingKey='';editorPanel.querySelectorAll('.dragging,.drop-target').forEach(item=>item.classList.remove('dragging','drop-target'));});
+    editorScale.addEventListener('input',()=>{editorRoot.style.zoom=`${editorScale.value}%`;inspectorContent.style.zoom=`${editorScale.value}%`;editorScaleValue.value=`${editorScale.value}%`;editorScaleValue.textContent=`${editorScale.value}%`;});
+    elementType.addEventListener('change',updateSelectionTools);
+    addElementButton.addEventListener('click',insertElement);
+    moveUpButton.addEventListener('click',()=>moveSelection(-1));
+    moveDownButton.addEventListener('click',()=>moveSelection(1));
+    deleteElementButton.addEventListener('click',deleteSelection);
+    addSectionButton.addEventListener('click',()=>{
+      if(!model||!selected?.active)return;
+      const section={id:id('section',model.sections),order:model.sections.length+1,title:'새 섹션',blocks:[]};
+      model.sections.push(section);activeMapKey=sectionKey(section);renderEditor();renderPreview();selectMapItem(activeMapKey);
+    });
     let scrollSyncPending=false;window.addEventListener('scroll',()=>{if(scrollSyncPending)return;scrollSyncPending=true;window.requestAnimationFrame(()=>{syncMiniMapToScroll();scrollSyncPending=false;});},{passive:true});
     loadList();
   </script>

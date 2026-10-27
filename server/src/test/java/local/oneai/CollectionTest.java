@@ -12,8 +12,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.MediaType;
+import local.oneai.service.AccountService;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
@@ -25,10 +27,29 @@ class CollectionTest {
     @DynamicPropertySource static void properties(DynamicPropertyRegistry registry) { registry.add("oneai.db",()->file.toString()); }
     @Autowired MockMvc mvc;
     @Autowired DataSource source;
+    @Autowired AccountService accounts;
     final ObjectMapper mapper=new ObjectMapper();
     String session;
+    String csrfToken;
+    MockHttpSession userSession;
     JdbcTemplate db;
-    @BeforeEach void setup() { session=UUID.randomUUID().toString(); db=new JdbcTemplate(source); }
+    record AuthSession(MockHttpSession session,String csrfToken,String collectionSessionId) { }
+    @BeforeEach void setup() throws Exception {
+        db=new JdbcTemplate(source);
+        if(db.queryForObject("SELECT count(*) FROM user_accounts WHERE login_id=?",Integer.class,"demo-test")==0) accounts.register("demo-test","2468");
+        AuthSession auth=login("demo-test","2468"); userSession=auth.session(); csrfToken=auth.csrfToken(); session=auth.collectionSessionId();
+    }
+    AuthSession login(String loginId,String pin) throws Exception {
+        var csrfResult=mvc.perform(get("/api/v1/auth/csrf")).andReturn();
+        String initialToken=mapper.readTree(csrfResult.getResponse().getContentAsByteArray()).get("csrfToken").asText();
+        MockHttpSession anonymous=(MockHttpSession)csrfResult.getRequest().getSession(false);
+        ObjectNode credentials=mapper.createObjectNode().put("loginId",loginId).put("password",pin).put("returnTo","/");
+        var loginResult=mvc.perform(post("/api/v1/auth/login").session(anonymous).header("X-CSRF-TOKEN",initialToken)
+            .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(credentials))).andReturn();
+        assertEquals(200,loginResult.getResponse().getStatus());
+        JsonNode body=mapper.readTree(loginResult.getResponse().getContentAsByteArray());
+        return new AuthSession((MockHttpSession)loginResult.getRequest().getSession(false),body.get("csrfToken").asText(),body.get("sessionId").asText());
+    }
     ObjectNode event(String type,String payload) throws Exception {
         ObjectNode e=mapper.createObjectNode();
         e.put("schemaVersion",1).put("eventId",UUID.randomUUID().toString()).put("eventType",type)
@@ -39,7 +60,7 @@ class CollectionTest {
         var e=event("search_submitted","{\"searchId\":\"placeholder\",\"sourceDocumentId\":\"manual-home\",\"query\":\"합성 가나다\"}");
         ((ObjectNode)e.get("payload")).put("searchId",e.get("eventId").asText()); return e;
     }
-    int post(JsonNode e) throws Exception { return mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/events").contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(e))).andReturn().getResponse().getStatus(); }
+    int post(JsonNode e) throws Exception { return mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/events").session(userSession).header("X-CSRF-TOKEN",csrfToken).contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(e))).andReturn().getResponse().getStatus(); }
     ObjectNode exposure(ObjectNode search,int count) throws Exception {
         return event("results_exposed","{\"searchId\":\""+search.get("eventId").asText()+"\",\"totalCount\":"+count+",\"items\":"+(count==0?"[]":"[{\"documentId\":\"contact\",\"documentVersion\":\"local-v1\",\"rank\":1}]")+"}");
     }
@@ -71,8 +92,8 @@ class CollectionTest {
         assertEquals(0,db.queryForObject("SELECT count(*) FROM result_exposures WHERE impression_id=?",Integer.class,x.get("eventId").asText()));
     }
     @Test void otherSessionAndLabelRejected() throws Exception {
-        var s=search(); assertEquals(201,post(s)); var x=exposure(s,0); x.put("sessionId",UUID.randomUUID().toString()); assertEquals(409,post(x));
-        var another=search(); another.put("userId","demo-other"); assertEquals(409,post(another));
+        var s=search(); assertEquals(201,post(s)); var x=exposure(s,0); x.put("sessionId",UUID.randomUUID().toString()); assertEquals(403,post(x));
+        var another=search(); another.put("userId","demo-other"); assertEquals(403,post(another));
     }
     @Test void missingDependencyAndUnknownFields() throws Exception {
         assertEquals(409,post(exposure(search(),0))); var s=search(); s.put("password","synthetic"); assertEquals(400,post(s));
@@ -105,19 +126,21 @@ class CollectionTest {
     }
     @Test void searchViewRatingsAreLinkedAndFiltered() throws Exception {
         var v=linkedView(); var r=rating(v,5); assertEquals(201,post(r));
-        var duplicate=mapper.readTree(mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/events").contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(r))).andReturn().getResponse().getContentAsByteArray());
+        var duplicate=mapper.readTree(mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/events").session(userSession).header("X-CSRF-TOKEN",csrfToken).contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(r))).andReturn().getResponse().getContentAsByteArray());
         assertEquals("duplicate",duplicate.get("status").asText());
-        var listed=mapper.readTree(mvc.perform(get("/api/v1/dev/events").param("eventType","usefulness_rated").param("rating","5").param("criteriaVersion","1")).andReturn().getResponse().getContentAsByteArray()).get("events").get(0);
+        AuthSession admin=login("admin","1111");
+        var listed=mapper.readTree(mvc.perform(get("/api/v1/dev/events").session(admin.session()).param("eventType","usefulness_rated").param("rating","5").param("criteriaVersion","1")).andReturn().getResponse().getContentAsByteArray()).get("events").get(0);
         assertEquals(5,listed.at("/payload/value").asInt()); assertEquals(1,listed.at("/payload/criteriaVersion").asInt()); assertEquals(v.get("eventId").asText(),listed.at("/payload/viewId").asText());
         assertEquals(v.at("/payload/documentId").asText(),listed.at("/context/documentId").asText());
         assertEquals(v.at("/payload/searchId").asText(),listed.at("/context/searchId").asText());
         assertEquals("합성 가나다",listed.at("/context/query").asText());
-        assertEquals(400,mvc.perform(get("/api/v1/dev/events").param("rating","6")).andReturn().getResponse().getStatus());
+        assertEquals(400,mvc.perform(get("/api/v1/dev/events").session(admin.session()).param("rating","6")).andReturn().getResponse().getStatus());
         var other=rating(v,4); other.put("sessionId",UUID.randomUUID().toString()); assertEquals(409,post(other));
     }
     @Test void deletingViewAlsoDeletesRatingFirst() throws Exception {
         var v=linkedView(); var r=rating(v,2); assertEquals(201,post(r));
-        var response=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/dev/events")
+        AuthSession admin=login("admin","1111");
+        var response=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/dev/events").session(admin.session()).header("X-CSRF-TOKEN",admin.csrfToken())
             .contentType(MediaType.APPLICATION_JSON).content("{\"eventIds\":[\""+v.get("eventId").asText()+"\"]}")).andReturn().getResponse();
         assertEquals(200,response.getStatus());
         assertEquals(0,db.queryForObject("SELECT count(*) FROM usefulness_ratings WHERE view_id=?",Integer.class,v.get("eventId").asText()));
@@ -130,10 +153,10 @@ class CollectionTest {
         assertEquals(200,mvc.perform(get("/")).andReturn().getResponse().getStatus());
     }
     @Test void invalidJsonAndSizeAreRejectedWithoutEcho() throws Exception {
-        var response=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/events").contentType(MediaType.APPLICATION_JSON).content("{} {}"))
+        var response=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/events").session(userSession).header("X-CSRF-TOKEN",csrfToken).contentType(MediaType.APPLICATION_JSON).content("{} {}"))
             .andReturn().getResponse();
         assertEquals(400,response.getStatus()); assertFalse(response.getContentAsString().contains("{} {}"));
-        assertEquals(413,mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/events").contentType(MediaType.APPLICATION_JSON).content(" ".repeat(65537))).andReturn().getResponse().getStatus());
+        assertEquals(413,mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/events").session(userSession).header("X-CSRF-TOKEN",csrfToken).contentType(MediaType.APPLICATION_JSON).content(" ".repeat(65537))).andReturn().getResponse().getStatus());
     }
     @Test void concurrentDuplicateHasOneInsert() throws Exception {
         var event=search();
@@ -147,7 +170,8 @@ class CollectionTest {
     @Test void developerReadReconstructsExistingContractAndDoesNotWrite() throws Exception {
         fullFlowAndKoreanTime();
         int before=db.queryForObject("SELECT count(*) FROM events",Integer.class);
-        var response=mvc.perform(get("/api/v1/dev/events").param("userId","demo-test")).andReturn().getResponse();
+        AuthSession admin=login("admin","1111");
+        var response=mvc.perform(get("/api/v1/dev/events").session(admin.session()).param("userId","demo-test")).andReturn().getResponse();
         assertEquals(200,response.getStatus()); assertEquals("no-store",response.getHeader("Cache-Control"));
         JsonNode events=mapper.readTree(response.getContentAsByteArray()).get("events");
         var own=new ArrayList<JsonNode>(); events.forEach(e->{if(e.get("sessionId").asText().equals(session)) own.add(e);});
@@ -160,30 +184,29 @@ class CollectionTest {
             assertEquals("합성 가나다",e.at("/context/query").asText());
         }
         assertEquals(before,db.queryForObject("SELECT count(*) FROM events",Integer.class));
-        String filtered=mvc.perform(get("/api/v1/dev/events").param("eventType","document_clicked")).andReturn().getResponse().getContentAsString();
+        String filtered=mvc.perform(get("/api/v1/dev/events").session(admin.session()).param("eventType","document_clicked")).andReturn().getResponse().getContentAsString();
         for(var e:mapper.readTree(filtered).get("events")) assertEquals("document_clicked",e.get("eventType").asText());
     }
     @Test void developerEmptyInvalidAndExternalRequests() throws Exception {
-        var empty=mvc.perform(get("/api/v1/dev/events").param("userId","demo-"+UUID.randomUUID())).andReturn().getResponse();
+        AuthSession admin=login("admin","1111");
+        var empty=mvc.perform(get("/api/v1/dev/events").session(admin.session()).param("userId","demo-"+UUID.randomUUID())).andReturn().getResponse();
         assertEquals(200,empty.getStatus()); assertEquals(0,mapper.readTree(empty.getContentAsByteArray()).get("events").size());
-        assertEquals(400,mvc.perform(get("/api/v1/dev/events").param("eventType","bad")).andReturn().getResponse().getStatus());
-        assertEquals(403,mvc.perform(get("/api/v1/dev/events").with(r->{r.setRemoteAddr("192.0.2.10");return r;})).andReturn().getResponse().getStatus());
-        assertEquals(403,mvc.perform(get("/dev/events").with(r->{r.setRemoteAddr("192.0.2.10");return r;})).andReturn().getResponse().getStatus());
-        assertEquals(200,mvc.perform(get("/dev/events")).andReturn().getResponse().getStatus());
+        assertEquals(400,mvc.perform(get("/api/v1/dev/events").session(admin.session()).param("eventType","bad")).andReturn().getResponse().getStatus());
+        assertEquals(403,mvc.perform(get("/api/v1/dev/events").session(admin.session()).with(r->{r.setRemoteAddr("192.0.2.10");return r;})).andReturn().getResponse().getStatus());
+        assertEquals(403,mvc.perform(get("/dev/events").session(admin.session()).with(r->{r.setRemoteAddr("192.0.2.10");return r;})).andReturn().getResponse().getStatus());
+        assertEquals(200,mvc.perform(get("/dev/events").session(admin.session())).andReturn().getResponse().getStatus());
     }
     @Test void databasePathIsRepositoryRelative() {
         var env=new org.springframework.mock.env.MockEnvironment().withProperty("oneai.db","local-data/oneai-collection.sqlite");
         assertEquals(local.oneai.config.LocalConfig.root().resolve("local-data/oneai-collection.sqlite"),local.oneai.config.LocalConfig.databasePath(env));
     }
-    @Test void freeUserLabelsCanBeStoredAndFiltered() throws Exception {
-        for(String label:List.of("테스트상담사", "tester 01", "실험🌱", "<test>&")) {
-            session=UUID.randomUUID().toString();
-            var e=search(); e.put("userId",label); assertEquals(201,post(e));
-            var response=mvc.perform(get("/api/v1/dev/events").param("userId",label)).andReturn().getResponse();
-            assertEquals(200,response.getStatus());
-            var events=mapper.readTree(response.getContentAsByteArray()).get("events");
-            assertTrue(events.size()>0); for(var item:events) assertEquals(label,item.get("userId").asText());
-        }
-        for(String label:List.of(" ","x".repeat(65),"test\nlabel")) { var e=search(); e.put("userId",label); assertEquals(400,post(e)); }
+    @Test void accountSessionOwnsEventIdentity() throws Exception {
+        var own=search(); assertEquals(201,post(own));
+        assertEquals("demo-test",db.queryForObject("SELECT user_id FROM collection_sessions WHERE session_id=?",String.class,session));
+        var spoofed=search(); spoofed.put("userId","demo-other"); assertEquals(403,post(spoofed));
+        var anonymousCsrf=mvc.perform(get("/api/v1/auth/csrf")).andReturn();
+        String token=mapper.readTree(anonymousCsrf.getResponse().getContentAsByteArray()).get("csrfToken").asText();
+        MockHttpSession anonymous=(MockHttpSession)anonymousCsrf.getRequest().getSession(false);
+        assertEquals(401,mvc.perform(post("/api/v1/events").session(anonymous).header("X-CSRF-TOKEN",token).contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(search()))).andReturn().getResponse().getStatus());
     }
 }

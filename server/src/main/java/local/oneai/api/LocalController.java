@@ -2,6 +2,7 @@ package local.oneai.api;
 
 import com.fasterxml.jackson.databind.*;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import java.nio.file.*;
 import java.util.*;
 import org.springframework.dao.DataAccessException;
@@ -11,15 +12,19 @@ import org.springframework.web.bind.annotation.*;
 import local.oneai.config.LocalConfig;
 import local.oneai.service.EventService;
 import local.oneai.service.ManualContentService;
+import local.oneai.service.AccountService;
+import static local.oneai.api.AuthController.ACCOUNT_SESSION_KEY;
+import static local.oneai.api.AuthController.COLLECTION_SESSION_KEY;
 
 @RestController
 public class LocalController {
     private final EventService service;
     private final ManualContentService manuals;
+    private final AccountService accounts;
     private final ObjectMapper mapper=new ObjectMapper()
         .enable(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
         .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-    public LocalController(EventService service, ManualContentService manuals) { this.service=service; this.manuals=manuals; }
+    public LocalController(EventService service, ManualContentService manuals, AccountService accounts) { this.service=service; this.manuals=manuals; this.accounts=accounts; }
     @GetMapping("/api/v1/manual/documents/{documentId}")
     public ResponseEntity<?> manual(@PathVariable String documentId) {
         try { return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(manuals.get(documentId)); }
@@ -32,6 +37,11 @@ public class LocalController {
         try {
             String content=request.getContentType();
             if (content==null || !MediaType.APPLICATION_JSON.isCompatibleWith(MediaType.parseMediaType(content))) return error(null,415,"UNSUPPORTED_MEDIA_TYPE",false);
+            HttpSession httpSession=request.getSession(false);
+            String accountId=httpSession==null?null:(String)httpSession.getAttribute(ACCOUNT_SESSION_KEY);
+            var account=accounts.findActive(accountId);
+            if (account.isEmpty()) return error(null,401,"AUTHENTICATION_REQUIRED",false);
+            String accountSessionId=(String)httpSession.getAttribute(COLLECTION_SESSION_KEY);
             byte[] bytes=request.getInputStream().readNBytes(65537);
             if (bytes.length>65536) return error(null,413,"PAYLOAD_TOO_LARGE",false);
             JsonNode event=mapper.readTree(bytes);
@@ -39,6 +49,10 @@ public class LocalController {
                 String candidate=event.get("eventId").textValue();
                 try { if (UUID.fromString(candidate).toString().equals(candidate)) eventId=candidate; } catch (IllegalArgumentException ignored) { }
             }
+            if (!account.get().loginId().equals(event==null?null:event.path("userId").asText(null)))
+                return error(eventId,403,"ACCOUNT_IDENTITY_MISMATCH",false);
+            if (accountSessionId==null || !accountSessionId.equals(event==null?null:event.path("sessionId").asText(null)))
+                return error(eventId,403,"ACCOUNT_SESSION_MISMATCH",false);
             var result=service.store(event);
             return ResponseEntity.status(result.get("status").equals("stored")?201:200).body(result);
         } catch (EventService.Invalid ex) { return error(eventId,ex.status,ex.code,ex.code.equals("DEPENDENCY_NOT_READY")); }
