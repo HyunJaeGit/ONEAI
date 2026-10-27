@@ -48,7 +48,10 @@ const developerEventsLink = document.createElement('a');
 developerEventsLink.className = 'developer-events-link';
 developerEventsLink.href = '/dev/events';
 developerEventsLink.textContent = '수집 이벤트 조회';
-menuPanel.prepend(developerEventsLink);
+const manualAdminLink = document.createElement('a');
+manualAdminLink.className = 'developer-events-link';
+manualAdminLink.href = '/dev/manual';
+manualAdminLink.textContent = '매뉴얼 관리';
 const requestTrigger = document.createElement('button');
 requestTrigger.type = 'button';
 requestTrigger.className = 'content-request-trigger';
@@ -61,6 +64,39 @@ const setMenuOpen = open => {
   menuPanel.hidden = !open;
 };
 menuButton.addEventListener('click', () => setMenuOpen(menuPanel.hidden));
+const localApplication = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+if (localApplication) {
+  const accountLinks = document.createElement('div');
+  const accountStatus = document.createElement('p');
+  accountStatus.className = 'developer-events-link';
+  accountStatus.setAttribute('role', 'status');
+  const loginLink = document.createElement('a');
+  loginLink.className = 'developer-events-link'; loginLink.href = '/login'; loginLink.textContent = '로그인';
+  const registerLink = document.createElement('a');
+  registerLink.className = 'developer-events-link'; registerLink.href = '/register'; registerLink.textContent = '회원가입';
+  accountLinks.append(accountStatus, loginLink, registerLink);
+  menuPanel.prepend(accountLinks);
+  fetch('/api/v1/auth/me', { cache:'no-store', credentials:'same-origin' }).then(response => response.ok ? response.json() : null).then(account => {
+    if (!account?.authenticated) { accountStatus.textContent = '로그인하지 않음'; return; }
+    accountStatus.textContent = `${account.loginId} · ${account.memberType}`;
+    loginLink.hidden = true; registerLink.hidden = true;
+    const logoutButton = document.createElement('button');
+    logoutButton.type = 'button'; logoutButton.textContent = '로그아웃';
+    logoutButton.addEventListener('click', async () => {
+      logoutButton.disabled = true;
+      try {
+        const csrf = await fetch('/api/v1/auth/csrf', { cache:'no-store', credentials:'same-origin' });
+        if (!csrf.ok) throw new Error();
+        const token = (await csrf.json()).csrfToken;
+        const result = await fetch('/api/v1/auth/logout', { method:'POST', credentials:'same-origin', headers:{'X-CSRF-TOKEN':token} });
+        if (!result.ok) throw new Error();
+        location.reload();
+      } catch (_) { accountStatus.textContent = '로그아웃하지 못했습니다. 다시 시도해 주세요.'; logoutButton.disabled = false; }
+    });
+    accountLinks.append(logoutButton);
+    if (account.memberType === 'ADMIN') menuPanel.prepend(developerEventsLink, manualAdminLink);
+  }).catch(() => { accountStatus.textContent = '계정 상태를 확인할 수 없습니다.'; });
+}
 document.addEventListener('pointerdown', event => {
   if (!headerMenu.contains(event.target)) setMenuOpen(false);
 });
@@ -225,7 +261,10 @@ const appendHighlightedText = (container, text, terms) => {
   }
   container.append(document.createTextNode(text.slice(offset)));
 };
+let dynamicManualPending = !!document.getElementById('manual-content');
+let deferredManualHighlight = null;
 const applyPageHighlights = query => {
+  if (dynamicManualPending) { deferredManualHighlight = query; return; }
   const terms = normalize(query).split(' ').filter(Boolean);
   const main = document.querySelector('main');
   if (!terms.length || !main) return;
@@ -298,6 +337,137 @@ const collection = (() => {
     return entry ? { documentId:entry[1], documentVersion:'local-v1' } : null;
   };
   const currentDocument = identify(location.href);
+const manualContent = document.getElementById('manual-content');
+if (manualContent) {
+  const node = (tag, text, className) => {
+    const element = document.createElement(tag);
+    if (text !== undefined) element.textContent = text;
+    if (className) element.className = className;
+    return element;
+  };
+  const inline = (parent, items) => {
+    if (!Array.isArray(items)) throw new Error('invalid inline content');
+    for (const item of items) {
+      if (!item || typeof item !== 'object') throw new Error('invalid inline item');
+      if (item.type === 'text' && typeof item.value === 'string') {
+        const lines = item.value.split('\n');
+        lines.forEach((line, index) => {
+          if (index) parent.append(document.createElement('br'));
+          if (line) parent.append(document.createTextNode(line));
+        });
+      }
+      else if (item.type === 'strong' && Array.isArray(item.children)) inline(parent.appendChild(document.createElement('strong')), item.children);
+      else if (item.type === 'link' && typeof item.label === 'string') {
+        let href;
+        if (item.targetType === 'external' && typeof item.url === 'string') {
+          const url = new URL(item.url, location.href);
+          if (!['http:', 'https:'].includes(url.protocol)) throw new Error('invalid link');
+          href = url.href;
+        } else if (item.targetType === 'email' && typeof item.email === 'string' && item.email.includes('@')) href = `mailto:${item.email}`;
+        else if (item.targetType === 'internal' && typeof item.documentId === 'string') {
+          const entry = catalog.find(([, id]) => id === item.documentId);
+          if (!entry) throw new Error('unknown document link');
+          href = new URL(entry[0], base).href;
+          if (item.anchor) href += `#${encodeURIComponent(item.anchor)}`;
+        } else throw new Error('invalid link target');
+        const link = node('a', item.label);
+        link.href = href;
+        parent.append(link);
+      } else throw new Error('unsupported inline type');
+    }
+  };
+  const renderBlock = block => {
+    if (!block || typeof block !== 'object' || !Number.isInteger(block.order)) throw new Error('invalid content block');
+    let element;
+    if (block.type === 'heading') element = node(`h${block.level}`, block.text);
+    else if (block.type === 'paragraph') { element = node('p', undefined, block.variant === 'source' ? 'source-note' : ''); inline(element, block.content); }
+    else if (block.type === 'list' && ['ordered', 'unordered'].includes(block.listStyle) && Array.isArray(block.items)) {
+      element = document.createElement(block.listStyle === 'ordered' ? 'ol' : 'ul');
+      for (const item of block.items) { const li = document.createElement('li'); inline(li, item); element.append(li); }
+    } else if (block.type === 'notice' && ['warning', 'check', 'reference'].includes(block.variant)) {
+      if (Array.isArray(block.children)) {
+        element = node('div', undefined, block.variant === 'reference' ? 'manual-note' : 'notice');
+        if (block.title) element.append(node('h3', block.title));
+        for (const child of [...block.children].sort((a, b) => a.order - b.order)) element.append(renderBlock(child));
+      } else if (block.variant === 'reference') { element = node('p', undefined, 'manual-note'); inline(element, block.content); }
+      else {
+      element = node('div', undefined, 'notice');
+      if (block.title) element.append(node('h3', block.title));
+      const p = document.createElement('p'); inline(p, block.content); element.append(p);
+      }
+    } else if (block.type === 'table' && Array.isArray(block.columns) && Array.isArray(block.rows)) {
+      const region = node('div', undefined, 'table-scroll');
+      region.setAttribute('role', 'region'); region.setAttribute('aria-label', block.caption); region.tabIndex = 0;
+      const table = document.createElement('table'); table.append(node('caption', block.caption));
+      const thead = document.createElement('thead'), headerRow = document.createElement('tr');
+      for (const column of block.columns) { const th = node('th', column.label); th.scope = 'col'; headerRow.append(th); }
+      thead.append(headerRow); table.append(thead);
+      const tbody = document.createElement('tbody');
+      for (const row of block.rows) {
+        const cells = Array.isArray(row) ? row : row?.cells;
+        if (!Array.isArray(cells) || cells.length !== block.columns.length) throw new Error('invalid table row');
+        const tr = document.createElement('tr');
+        if (!Array.isArray(row) && row.id) tr.id = row.id;
+        for (const cellData of cells) {
+          const cell = document.createElement(cellData.kind === 'header' ? 'th' : 'td');
+          if (cellData.kind === 'header') cell.scope = cellData.scope === 'row' ? 'row' : 'col';
+          inline(cell, cellData.content); tr.append(cell);
+        }
+        tbody.append(tr);
+      }
+      table.append(tbody); region.append(table); element = region;
+    } else if (block.type === 'details' && typeof block.summary === 'string' && Array.isArray(block.children)) {
+      element = node('details', undefined, 'supplement');
+      element.append(node('summary', block.summary));
+      const body = node('div', undefined, 'supplement-body');
+      for (const child of [...block.children].sort((a, b) => a.order - b.order)) body.append(renderBlock(child));
+      element.append(body);
+    } else throw new Error('unsupported content block');
+    if (block.id) element.id = block.id;
+    return element;
+  };
+  const loadManualContent = async () => {
+    try {
+      const documentId = currentDocument?.documentId;
+      if (!documentId) throw new Error('document unavailable');
+      const response = await fetch(new URL(`api/v1/manual/documents/${encodeURIComponent(documentId)}`, base), { cache:'no-store', redirect:'error' });
+      if (!response.ok) throw new Error('request failed');
+      const content = await response.json();
+      if (content.documentId !== documentId || !Array.isArray(content.sections)) throw new Error('invalid response');
+      const contentBody = node('div', undefined, 'manual-content-body');
+      const heading = node('div', undefined, 'page-heading');
+      const eyebrow = content.eyebrow || (documentId === 'school-schedule' ? '학교 측 업무 프로세스 · 03단계' : '');
+      if (eyebrow) heading.append(node('p', eyebrow, 'eyebrow'));
+      heading.append(node('h1', content.title));
+      if (Array.isArray(content.lead)) { const lead = document.createElement('p'); inline(lead, content.lead); heading.append(lead); }
+      contentBody.append(heading);
+      for (const section of [...content.sections].sort((a, b) => a.order - b.order)) {
+        const sectionElement = node('section', undefined, 'manual-section');
+        if (section.id) sectionElement.id = section.id;
+        if (section.helpTip) {
+          const titleRow = node('div', undefined, 'section-heading');
+          if (section.title) titleRow.append(node('h2', section.title));
+          const tip = node('details', undefined, `help-tip${section.helpTipAlignment === 'left' ? ' help-tip-left' : ''}`);
+          tip.append(node('summary', '?')); tip.querySelector('summary').setAttribute('aria-label', `${section.title} 설명 보기`);
+          tip.append(node('p', section.helpTip)); titleRow.append(tip); sectionElement.append(titleRow);
+        } else if (section.title) sectionElement.append(node('h2', section.title));
+        if (!Array.isArray(section.blocks)) throw new Error('invalid section');
+        for (const block of [...section.blocks].sort((a, b) => a.order - b.order)) sectionElement.append(renderBlock(block));
+        if (section.variant === 'supplementary' || section.id === 'additional-checks') sectionElement.classList.add('supplementary-section');
+        contentBody.append(sectionElement);
+      }
+      manualContent.replaceChildren(contentBody);
+      dynamicManualPending = false;
+      if (deferredManualHighlight) applyPageHighlights(deferredManualHighlight);
+      if (location.hash) requestAnimationFrame(() => document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView());
+    } catch (_) {
+      manualContent.replaceChildren(node('p', '문서 내용을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'manual-note'));
+      manualContent.querySelector('p').setAttribute('role', 'status');
+      dynamicManualPending = false;
+    }
+  };
+  loadManualContent();
+}
   const local = /^https?:$/.test(location.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
   const ui = document.createElement('form');
   ui.className = 'collection-session';

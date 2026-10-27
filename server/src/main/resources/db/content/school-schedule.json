@@ -1,0 +1,101 @@
+{
+  "documentId": "school-schedule",
+  "documentVersion": "local-v1",
+  "title": "일정 확인·변경",
+  "eyebrow": "학교 측 업무 프로세스 · 03단계",
+  "sections": [
+    {
+      "id": "school-tasks",
+      "title": "학교가 할 일",
+      "order": 1,
+      "helpTip": "이 단계에서 학교가 진행할 절차입니다.",
+      "blocks": [
+        {
+          "id": "schedule-steps",
+          "type": "list",
+          "order": 1,
+          "listStyle": "ordered",
+          "items": [
+            [{"type":"text","value":"학교에 발송된 공문에서 수거 일정을 확인합니다."}],
+            [{"type":"text","value":"학교에 안내된 "},{"type":"link","targetType":"external","url":"https://dbs.edu-portal.ai/","label":"디벗관리시스템"},{"type":"text","value":"에 발급된 학교 계정으로 로그인해 [2027년 디벗 양품화] → [회수일정]을 엽니다."}],
+            [{"type":"text","value":"학교명·수거 날짜·시간·수량과 상태가 공문 내용과 일치하는지 확인합니다."}],
+            [{"type":"text","value":"일정이 맞으면 [이 일정으로 확정]을 누릅니다."}],
+            [{"type":"text","value":"수거 희망 일정 변경이 필요하면 [회수일정]에서 우리 학교의 [일정 변경 신청]을 선택하고 희망 날짜·시간, 변경 사유와 담당자 직통 연락처를 입력해 신청합니다."}]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "check-method",
+      "title": "확인 방법",
+      "order": 2,
+      "blocks": [
+        {
+          "id": "schedule-status-table",
+          "type": "table",
+          "order": 1,
+          "caption": "일정 상태별 확인",
+          "columns": [
+            {"key":"status","label":"상태","header":true},
+            {"key":"response","label":"의미와 학교 대응","header":true}
+          ],
+          "rows": [
+            [{"kind":"header","scope":"row","content":[{"type":"text","value":"공문 수령 후"}]},{"kind":"data","content":[{"type":"text","value":"공문에 기재된 수거 일정과 시스템의 [회수일정] 정보를 확인합니다."}]}],
+            [{"kind":"header","scope":"row","content":[{"type":"text","value":"공지완료"}]},{"kind":"data","content":[{"type":"text","value":"공지 일정을 확인하고 확정 또는 변경 신청합니다."}]}],
+            [{"kind":"header","scope":"row","content":[{"type":"text","value":"변경신청"}]},{"kind":"data","content":[{"type":"text","value":"희망 일정을 신청한 상태입니다. 담당 매니저 확인을 기다립니다."}]}],
+            [{"kind":"header","scope":"row","content":[{"type":"text","value":"협의중"}]},{"kind":"data","content":[{"type":"text","value":"담당 매니저가 조정한 일정을 전화로 안내합니다. 협의 후 다시 확정 또는 변경 신청합니다."}]}],
+            [{"kind":"header","scope":"row","content":[{"type":"text","value":"승인완료"}]},{"kind":"data","content":[{"type":"text","value":"방문 날짜가 확정된 상태입니다."}]}],
+            [{"kind":"header","scope":"row","content":[{"type":"text","value":"처리완료"}]},{"kind":"data","content":[{"type":"text","value":"수거확인서의 학교 서명까지 완료된 상태입니다."}]}]
+          ]
+        },
+        {"id":"schedule-status-reminder","type":"paragraph","order":2,"content":[{"type":"text","value":"일정 화면을 열어 알림이 사라지거나 ‘공지확인’으로 기록되어도 방문 확정을 의미하지 않습니다. [승인완료] 상태를 확인하세요."}]},
+        {"id":"schedule-change-note","type":"notice","order":3,"variant":"reference","content":[{"type":"text","value":"변경 신청일은 확정일이 아닙니다. 다수 학교 일정에 따라 담당 매니저와 조율합니다."}]}
+      ]
+    },
+    {
+      "id": "advance-contact",
+      "title": "수거 전 사전 연락",
+      "order": 3,
+      "blocks": [
+        {"id":"advance-contact-message","type":"paragraph","order":1,"content":[{"type":"strong","children":[{"type":"text","value":"수거 예정일 3일 전까지 수거 담당자가 학교로 연락드릴 예정입니다."}]}]}
+      ]
+    },
+    {
+      "id": "additional-checks",
+      "title": "해당하는 경우 추가 확인",
+      "order": 4,
+      "helpTip": "기본 절차와 별도로, 해당 상황에 맞는 항목만 펼쳐 확인하세요.",
+      "blocks": [
+        {
+          "id": "approved-change",
+          "type": "details",
+          "order": 1,
+          "summary": "예외 · 승인완료 후 시스템에서 일정 변경 신청이 되지 않는 경우",
+          "children": [
+            {"id":"approved-change-body","type":"paragraph","order":1,"content":[{"type":"text","value":"담당 매니저가 확인해 [승인완료]로 처리한 일정은 시스템에서 변경 신청이 불가능할 수 있습니다. 이 경우 담당 양품화 매니저에게 직접 연락해 수거 일정을 조정해야 합니다."}]},
+            {"id":"approved-change-contact-link","type":"paragraph","order":2,"content":[{"type":"link","targetType":"internal","documentId":"contact","label":"일정 관련 문의 경로"}]}
+          ]
+        },
+        {
+          "id": "other-site",
+          "type": "details",
+          "order": 2,
+          "summary": "접속 문제 · 검색으로 찾은 사이트가 다른 경우",
+          "children": [
+            {"id":"other-site-body","type":"paragraph","order":1,"content":[{"type":"text","value":"인터넷 검색으로 나오는 dibeot.kr과 양품화 업무용 시스템은 별도입니다. 학교에 안내된 주소로 접속하세요."}]},
+            {"id":"other-site-link","type":"paragraph","order":2,"content":[{"type":"link","targetType":"internal","documentId":"contact","anchor":"management-systems","label":"시스템 접속 주소·용도 구분"}]}
+          ]
+        },
+        {
+          "id": "test-server-example",
+          "type": "details",
+          "order": 3,
+          "summary": "자료 확인 · 시험서버 화면 예시",
+          "children": [
+            {"id":"test-server-example-body","type":"paragraph","order":1,"content":[{"type":"text","value":"시험서버 화면 예시입니다. 화면에 표시된 일정·학교 값을 실제 정보로 사용하지 마세요."}]}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -10,14 +10,22 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.web.bind.annotation.*;
 import local.oneai.config.LocalConfig;
 import local.oneai.service.EventService;
+import local.oneai.service.ManualContentService;
 
 @RestController
 public class LocalController {
     private final EventService service;
+    private final ManualContentService manuals;
     private final ObjectMapper mapper=new ObjectMapper()
         .enable(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
         .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-    public LocalController(EventService service) { this.service=service; }
+    public LocalController(EventService service, ManualContentService manuals) { this.service=service; this.manuals=manuals; }
+    @GetMapping("/api/v1/manual/documents/{documentId}")
+    public ResponseEntity<?> manual(@PathVariable String documentId) {
+        try { return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(manuals.get(documentId)); }
+        catch (NoSuchElementException ex) { return ResponseEntity.status(404).cacheControl(CacheControl.noStore()).body(Map.of("error",Map.of("code","DOCUMENT_NOT_FOUND","message","문서를 찾을 수 없습니다."))); }
+        catch (Exception ex) { return ResponseEntity.status(503).cacheControl(CacheControl.noStore()).body(Map.of("error",Map.of("code","CONTENT_UNAVAILABLE","message","문서 내용을 불러오지 못했습니다."))); }
+    }
     @PostMapping("/api/v1/events")
     public ResponseEntity<?> collect(HttpServletRequest request) {
         String eventId=null;

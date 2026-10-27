@@ -259,12 +259,16 @@
       deleteBusy = true;
       updateSelection();
       try {
+        const csrfResponse = await fetch('/api/v1/auth/csrf', { cache:'no-store', credentials:'same-origin' });
+        if (!csrfResponse.ok) throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.');
+        const csrfToken = (await csrfResponse.json()).csrfToken;
         const response = await fetch('/api/v1/dev/events', {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
           body: JSON.stringify({ eventIds }),
           cache: 'no-store',
-          redirect: 'error'
+          redirect: 'error',
+          credentials: 'same-origin'
         });
         const result = await response.json();
         if (!response.ok) throw new Error('삭제에 실패했습니다. 로컬 API와 DB 상태를 확인하세요.');

@@ -7,7 +7,7 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
 /** Applies additive, versioned SQLite schema upgrades without replacing the database file. */
 public final class DatabaseMigrator {
-    private static final int CURRENT_VERSION = 3;
+    private static final int CURRENT_VERSION = 6;
     private static final String CREATE_RATINGS = "CREATE TABLE IF NOT EXISTS usefulness_ratings(" +
         "rating_id TEXT NOT NULL PRIMARY KEY REFERENCES events(event_id)," +
         "view_id TEXT NOT NULL UNIQUE REFERENCES document_views(view_id)," +
@@ -29,13 +29,28 @@ public final class DatabaseMigrator {
         } else if (version < 2) {
             migrateLegacyEvents(source);
             applyCurrentSchema(source);
-        } else if (version < CURRENT_VERSION) {
+        } else if (version < 3) {
             migrateRatingCriteria(source);
             applyCurrentSchema(source);
         } else {
             applyCurrentSchema(source);
         }
+        ensureManualContentStatus(source);
         verifyForeignKeys(source);
+    }
+
+    private void ensureManualContentStatus(DataSource source) throws SQLException {
+        boolean present = false;
+        try (Connection connection = source.getConnection(); Statement statement = connection.createStatement();
+             ResultSet columns = statement.executeQuery("PRAGMA table_info(manual_content)")) {
+            while (columns.next()) if ("is_active".equals(columns.getString("name"))) present = true;
+        }
+        if (!present) try (Connection connection = source.getConnection(); Statement statement = connection.createStatement()) {
+            statement.execute("ALTER TABLE manual_content ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK(typeof(is_active)='integer' AND is_active IN (0,1))");
+        }
+        try (Connection connection = source.getConnection(); Statement statement = connection.createStatement()) {
+            statement.execute("PRAGMA user_version=" + CURRENT_VERSION);
+        }
     }
 
     private void migrateLegacyEvents(DataSource source) throws Exception {

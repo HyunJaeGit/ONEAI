@@ -28,7 +28,7 @@ class DatabaseMigratorTest {
 
         assertEquals(1,db.queryForObject("SELECT count(*) FROM events WHERE event_id=?",Integer.class,event));
         assertEquals("합성 마이그레이션 확인",db.queryForObject("SELECT query FROM searches WHERE search_id=?",String.class,event));
-        assertEquals(3,db.queryForObject("PRAGMA user_version",Integer.class));
+        assertEquals(6,db.queryForObject("PRAGMA user_version",Integer.class));
         assertEquals(0,db.queryForList("PRAGMA foreign_key_check").size());
         assertEquals(1,db.queryForObject("PRAGMA foreign_keys",Integer.class));
         assertEquals(0,db.queryForObject("SELECT count(*) FROM usefulness_ratings",Integer.class));
@@ -56,7 +56,7 @@ class DatabaseMigratorTest {
         db.update("INSERT INTO usefulness_ratings VALUES (?,?,?)",rating5,view5,5);
         db.execute("PRAGMA user_version=2");
         new DatabaseMigrator().initialize(source);
-        assertEquals(3,db.queryForObject("PRAGMA user_version",Integer.class));
+        assertEquals(6,db.queryForObject("PRAGMA user_version",Integer.class));
         assertEquals(0,db.queryForObject("SELECT value FROM usefulness_ratings WHERE rating_id=?",Integer.class,rating0));
         assertEquals(5,db.queryForObject("SELECT value FROM usefulness_ratings WHERE rating_id=?",Integer.class,rating5));
         assertEquals(0,db.queryForObject("SELECT count(*) FROM usefulness_ratings WHERE criteria_version<>0",Integer.class));

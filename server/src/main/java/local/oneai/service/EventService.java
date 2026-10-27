@@ -25,7 +25,7 @@ public class EventService {
     private final TransactionTemplate tx;
     private final ObjectMapper mapper = new ObjectMapper();
     private final DateTimeFormatter time = DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC);
-    public EventService(DataSource source) throws Exception {
+    public EventService(DataSource source, ManualContentService manuals) throws Exception {
         db = new JdbcTemplate(source);
         tx = new TransactionTemplate(new DataSourceTransactionManager(source));
         new DatabaseMigrator().initialize(source);
@@ -36,6 +36,7 @@ public class EventService {
                 db.update("INSERT OR IGNORE INTO document_versions VALUES (?, 'local-v1', ?)",cols[0],cols[1]);
             }
         }
+        manuals.initialize();
     }
     public static boolean validUserId(String value) {
         return value != null && !value.isBlank() && value.length() <= 64 && value.codePoints().noneMatch(Character::isISOControl);
