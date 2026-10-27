@@ -5,11 +5,15 @@ import java.util.*;
 import javax.sql.DataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 @Service
 public class ManualContentService {
+    public static final class DocumentConflict extends RuntimeException {
+        public DocumentConflict(String message) { super(message); }
+    }
     private final JdbcTemplate db;
     private final ObjectMapper mapper = new ObjectMapper()
         .enable(com.fasterxml.jackson.core.JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
@@ -62,6 +66,39 @@ public class ManualContentService {
                 item.put("active", rs.getInt("is_active") == 1);
                 return item;
             });
+    }
+
+    @Transactional
+    public Map<String,Object> create(String slug, JsonNode content) {
+        if (slug == null || !slug.matches("[a-z0-9]+(?:-[a-z0-9]+){0,7}") || slug.length() > 48)
+            throw new IllegalArgumentException("페이지 주소는 영문 소문자·숫자·하이픈으로 입력해 주세요.");
+        String documentId = "manual-" + slug;
+        String path = "/manual/" + slug;
+        if (!db.queryForList("SELECT 1 FROM documents WHERE document_id=?", documentId).isEmpty() ||
+                !db.queryForList("SELECT 1 FROM document_versions WHERE path=?", path).isEmpty())
+            throw new DocumentConflict("이미 사용 중인 문서 ID 또는 주소입니다.");
+        validate(documentId, content);
+        if (text(content, "title").length() > 160)
+            throw new IllegalArgumentException("페이지 제목은 160자 이내로 입력해 주세요.");
+        if (!"local-v1".equals(text(content, "documentVersion")))
+            throw new IllegalArgumentException("신규 문서 버전은 local-v1로 시작해야 합니다.");
+        try {
+            String encoded = mapper.writeValueAsString(content);
+            db.update("INSERT INTO documents(document_id) VALUES (?)", documentId);
+            db.update("INSERT INTO document_versions(document_id,version,path) VALUES (?,?,?)", documentId, "local-v1", path);
+            db.update("INSERT INTO manual_content(document_id,document_version,content_json,is_active) VALUES (?,?,?,1)", documentId, "local-v1", encoded);
+        } catch (java.io.IOException ex) {
+            throw new IllegalArgumentException("Invalid content JSON", ex);
+        }
+        Map<String,Object> result = new LinkedHashMap<>();
+        result.put("documentId", documentId);
+        result.put("documentVersion", "local-v1");
+        result.put("path", path);
+        return result;
+    }
+
+    public boolean hasActivePath(String path) {
+        return !db.queryForList("SELECT 1 FROM manual_content m JOIN document_versions v ON v.document_id=m.document_id AND v.version=m.document_version WHERE v.path=? AND m.is_active=1", path).isEmpty();
     }
 
     public Map<String,Object> getForAdmin(String documentId) {

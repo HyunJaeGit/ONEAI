@@ -61,6 +61,16 @@ public class DeveloperController {
         try { return response(200,Map.of("documents",manuals.listForAdmin())); }
         catch(Exception ignored) { return response(503,Map.of("error",Map.of("code","MANUAL_LIST_UNAVAILABLE"))); }
     }
+    @PostMapping("/api/v1/dev/manual/documents")
+    public ResponseEntity<?> createManual(HttpServletRequest request, @RequestBody JsonNode body) {
+        if(!local(request)) return response(403,Map.of("error",Map.of("code","LOCAL_ONLY")));
+        if(body == null || !body.isObject() || !jsonRequest(request))
+            return response(415,Map.of("error",Map.of("code","JSON_REQUIRED")));
+        try { return response(201,manuals.create(body.path("slug").asText(null),body.get("content"))); }
+        catch(ManualContentService.DocumentConflict ex) { return response(409,Map.of("error",Map.of("code","DOCUMENT_CONFLICT","message",ex.getMessage()))); }
+        catch(IllegalStateException | IllegalArgumentException ex) { return response(400,Map.of("error",Map.of("code","INVALID_CONTENT","message","페이지 주소, 제목 또는 콘텐츠 입력을 확인해 주세요."))); }
+        catch(Exception ignored) { return response(503,Map.of("error",Map.of("code","MANUAL_CREATE_UNAVAILABLE"))); }
+    }
     @GetMapping("/api/v1/dev/manual/documents/{documentId}")
     public ResponseEntity<?> manualDocument(HttpServletRequest request, @PathVariable String documentId) {
         if(!local(request)) return response(403,Map.of("error",Map.of("code","LOCAL_ONLY")));

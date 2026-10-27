@@ -32,7 +32,12 @@
     .minimap { grid-area:map; position:sticky; top:16px; max-height:calc(100vh - 32px); overflow:auto; border:1px solid #d9e0e8; border-radius:9px; background:#f9fbfd; padding:12px; }
     .minimap h3 { margin:0 0 8px; font-size:1rem; }
     .map-list { display:grid; gap:3px; }
-    .map-item { display:block; width:100%; min-height:34px; padding:6px 8px; border:0; border-radius:6px; background:transparent; text-align:left; color:#344154; font-size:.85rem; font-weight:500; }
+    .tree-entry { display:grid; grid-template-columns:minmax(0,1fr) 30px; align-items:start; gap:2px; }
+    .tree-children { display:grid; gap:3px; grid-column:1/-1; margin-left:13px; padding-left:7px; border-left:1px solid #e7e4da; }
+    .tree-children[hidden] { display:none; }
+    .tree-toggle { width:30px; min-height:34px; padding:0; border-color:transparent; color:#555; font-size:.8rem; }
+    .tree-toggle:hover { background:#fff4ad; }
+    .map-item { display:block; width:100%; min-height:34px; padding:6px 8px; border:0; border-radius:6px; background:transparent; text-align:left; color:#344154; font-size:.84rem; font-weight:500; line-height:1.35; }
     .map-item:hover { background:#edf3f9; }
     .map-item[aria-current="location"] { background:#e3effb; color:#183f69; font-weight:750; box-shadow:inset 3px 0 #3975ae; }
     .map-item[aria-pressed="true"] { outline:1px solid #d7bd00; outline-offset:-1px; font-weight:750; }
@@ -48,6 +53,16 @@
     #preview [data-map-key]:hover { outline:1px dashed #c7b500; outline-offset:3px; }
     #preview [data-map-key].selection-card { outline:2px solid #d7bd00; outline-offset:3px; border-radius:4px; }
     .selection-location { display:block; margin-top:3px; color:#626262; font-size:.82rem; font-weight:400; }
+    .editor-toolbar button,.editor-toolbar select,.document-tools .toolbar button { min-height:36px; padding-inline:10px; font-size:.86rem; }
+    .edit-tools button,.edit-tools select,.inspector-content button,.inspector-content select { min-height:36px; padding-inline:10px; font-size:.86rem; }
+    .editor-toolbar { gap:6px; }
+    .editor-toolbar .field-label { margin:0; font-size:.82rem; }
+    .history-tools { display:flex; gap:6px; margin-left:auto; }
+    .new-page-form { display:grid; grid-template-columns:minmax(140px,.8fr) minmax(200px,1.4fr) auto; align-items:end; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid #e7e4da; }
+    .new-page-form[hidden] { display:none; }
+    .new-page-form label { font-size:.82rem; }
+    .new-page-note { grid-column:1/-1; margin:0; font-size:.82rem; }
+    #open-document { min-height:36px; padding:0 10px; border:1px solid #e3e1d8; border-radius:7px; background:#fff; color:#242424; font-size:.84rem; font-weight:700; text-decoration:none; white-space:nowrap; }
     .inspector { grid-area:inspector; position:sticky; top:16px; min-width:0; max-height:calc(100vh - 32px); }
     .inspector-content { display:grid; gap:12px; margin-top:12px; }
     .inspector-content > .row { display:grid; gap:12px; }
@@ -119,7 +134,8 @@
     @media print { #preview .table-scroll { overflow:visible; } #preview table { min-width:0; } }
     @media(max-width:1000px) { .editor-layout { grid-template-columns:minmax(150px,190px) minmax(260px,1fr) minmax(230px,280px); } .minimap,.inspector { position:static; max-height:none; } .edit-tools { max-height:calc(100vh - 32px); } }
     @media(max-width:760px) { .editor-layout { grid-template-columns:minmax(0,1fr); grid-template-areas:'map' 'canvas' 'inspector'; } .minimap { max-height:24vh; } .inspector { position:static; } .edit-tools { max-height:none; } #preview { min-height:45vh; } }
-    @media(max-width:640px) { .page { padding-top:20px; } .panel,.section-card,.block-card { padding:12px; } .inline-row { grid-template-columns:1fr; } .toolbar button,.toolbar a { flex:1 1 42%; } .item-row,.table-cell-card { grid-template-columns:1fr; } .table-cell-card > strong { grid-column:auto; } .focus-target { transform:none; } .edit-tools { padding:9px; } .edit-tools select { min-width:140px; } }
+    @media(max-width:640px) { .page { padding-top:20px; } .panel,.section-card,.block-card { padding:12px; } .inline-row { grid-template-columns:1fr; } .toolbar button,.toolbar a { flex:1 1 42%; } .item-row,.table-cell-card { grid-template-columns:1fr; } .table-cell-card > strong { grid-column:auto; } .focus-target { transform:none; } .edit-tools { padding:9px; } .edit-tools select { min-width:140px; } .map-list { grid-template-columns:minmax(0,1fr); } }
+    @media(max-width:640px) { .new-page-form { grid-template-columns:1fr; } .history-tools { margin-left:0; } }
     :root { color:#242424; background:#fff; }
     body { background:#fff; color:#242424; }
     h1,h2,h3,.edit-tools-head strong { color:#191919; }
@@ -155,7 +171,7 @@
         <summary aria-label="매뉴얼 편집 도움말" title="도움말">?</summary>
         <div class="help-panel">
           <h2>편집 도움말</h2>
-          <p>미니맵이나 페이지 구조에서 영역을 클릭하면 오른쪽 속성 패널에서 편집할 수 있습니다. 우클릭 메뉴로 빠른 작업을 열 수도 있습니다. 카드 제목의 손잡이를 드래그해 같은 단계의 섹션·블록 순서를 바꾸고, 키보드는 Shift+F10 또는 Alt+위/아래 화살표를 사용하세요.</p>
+          <p>문서 구조에서 섹션과 요소를 찾아 선택하거나, 가운데 미리보기의 내용을 눌러 바로 편집할 수 있습니다. 하위 항목은 화살표로 접고 펼칠 수 있고, 상세 구조에서는 같은 단계 요소를 드래그해 순서를 바꿀 수 있습니다.</p>
           <p>편집기 크기 조절은 입력 화면만 확대·축소하며 일반 페이지의 출력 크기에는 영향을 주지 않습니다. 저장 전 미리보기에서 화면을 확인할 수 있습니다.</p>
           <p>문서 ID·버전·경로와 기존 앵커는 직접 바꾸지 않습니다. 삭제한 블록의 앵커는 사라질 수 있습니다. 저장하지 않은 내용은 문서를 바꾸거나 다시 불러올 때 확인하며, 저장 실패 시 입력 내용은 화면에 남습니다.</p>
           <p>이 페이지와 관리 API는 ADMIN 로그인 및 loopback 요청이 필요합니다. loopback은 로컬 개발 제한이며 운영 배포용 접근 제어를 대신하지 않습니다. 외부 네트워크에 공개하지 마세요. 저장한 변경은 일반 매뉴얼에 즉시 반영됩니다.</p>
@@ -168,20 +184,29 @@
       <div class="row">
         <div class="grow"><label for="document">관리 가능한 문서</label><select id="document" disabled><option>문서 목록을 불러오는 중입니다.</option></select></div>
         <div id="document-state" class="grow muted" role="status"></div>
+        <a id="open-document" href="#" target="_blank" rel="noopener noreferrer" hidden>페이지 보기 ↗</a>
       </div>
       <p id="status" role="status" aria-live="polite"></p>
       <div class="toolbar">
         <button id="reload" type="button">다시 불러오기</button>
         <button id="show-preview" type="button" disabled>미리보기</button>
+        <span class="history-tools"><button id="undo" type="button" title="되돌리기 (Ctrl+Z)" disabled>되돌리기</button><button id="redo" type="button" title="다시 실행 (Ctrl+Shift+Z)" disabled>다시 실행</button></span>
         <button id="save" class="primary" type="button" disabled>저장</button>
         <button id="deactivate" class="danger" type="button" disabled>비활성화</button>
         <button id="reactivate" type="button" disabled>다시 활성화</button>
+        <button id="toggle-new-page" type="button">새 페이지</button>
       </div>
+      <form id="new-page-form" class="new-page-form" hidden>
+        <div><label for="new-page-slug">주소 ID</label><input id="new-page-slug" required pattern="[a-z0-9]+(-[a-z0-9]+){0,7}" maxlength="48" autocomplete="off" placeholder="예: device-guide"></div>
+        <div><label for="new-page-title">페이지 제목</label><input id="new-page-title" required maxlength="160" placeholder="새 매뉴얼 제목"></div>
+        <button id="create-page" class="primary" type="submit">페이지 생성</button>
+        <p class="muted new-page-note">주소는 /manual/{주소 ID} 형식입니다. 기존 메뉴와 검색 목록에는 자동으로 추가되지 않습니다.</p>
+      </form>
     </section>
     <section id="editor-panel" class="panel" aria-labelledby="content-heading" hidden>
       <h2 id="content-heading">본문 편집</h2>
       <div class="editor-layout">
-        <nav class="minimap" aria-label="문서 미니맵"><h3>페이지 미니맵</h3><div id="minimap-list" class="map-list"></div></nav>
+        <nav class="minimap" aria-label="문서 구조"><h3>문서 구조</h3><div id="minimap-list" class="map-list"></div></nav>
         <div class="editor-main">
           <p id="focus-indicator" class="sr-only" role="status" aria-live="polite"></p>
           <section id="preview-panel" class="panel" aria-labelledby="preview-heading" hidden>
@@ -199,7 +224,7 @@
         <aside class="inspector" aria-label="선택 요소 속성 및 설정">
           <section id="element-tools" class="edit-tools" aria-label="선택 요소 편집 도구" tabindex="-1">
             <div class="edit-tools-head"><div><strong id="selection-label">편집 위치를 선택하세요</strong><span id="selection-location" class="selection-location"></span></div><details class="selection-help"><summary aria-label="선택 영역 도움말" title="도움말">?</summary><div class="selection-help-popover"><span id="edit-tool-hint" role="status" aria-live="polite"></span></div></details></div>
-            <div class="toolbar">
+            <div class="toolbar editor-toolbar">
               <label class="field-label" for="element-type">요소 유형</label>
               <select id="element-type" aria-label="추가할 요소 유형"><option value="">유형 선택</option><option value="paragraph">문단</option><option value="heading">제목</option><option value="list">목록</option><option value="notice">안내</option><option value="table">표</option><option value="details">접기/펼치기</option></select>
               <button id="add-element" type="button" class="primary" disabled>요소 추가</button>
@@ -221,6 +246,7 @@
     const select=document.getElementById('document');
     const status=document.getElementById('status');
     const state=document.getElementById('document-state');
+    const openDocumentLink=document.getElementById('open-document');
     const helpPopover=document.querySelector('.help-popover');
     const editorRoot=document.getElementById('editor');
     const inspectorContent=document.getElementById('inspector-content');
@@ -231,6 +257,9 @@
     const focusIndicator=document.getElementById('focus-indicator');
     const saveButton=document.getElementById('save');
     const previewButton=document.getElementById('show-preview');
+    const undoButton=document.getElementById('undo');
+    const redoButton=document.getElementById('redo');
+    const newPageForm=document.getElementById('new-page-form');
     const elementType=document.getElementById('element-type');
     const addElementButton=document.getElementById('add-element');
     const moveUpButton=document.getElementById('move-up');
@@ -252,15 +281,38 @@
     let selected=null;
     let model=null;
     let baseline='';
+    let history=[];
+    let historyIndex=-1;
     let busy=false;
     let csrfToken='';
     let activeMapKey='doc';
     let viewportMapKey='doc';
+    const expandedMapKeys=new Set();
+    let mapExpansionInitialized=false;
     const documentCache=new Map();
     let anchorListCounter=0;
     let fieldCounter=0;
     let draggingKey='';
+    const historyLimit=50;
     const clone=value=>JSON.parse(JSON.stringify(value));
+    const historySnapshot=()=>model?JSON.stringify(model):'';
+    const updateHistoryButtons=()=>{undoButton.disabled=historyIndex<=0||busy;redoButton.disabled=historyIndex<0||historyIndex>=history.length-1||busy;};
+    const resetHistory=()=>{history=model?[historySnapshot()]:[];historyIndex=history.length-1;updateHistoryButtons();};
+    const captureHistory=()=>{
+      if(!model||busy)return;
+      const snapshot=historySnapshot();
+      if(historyIndex>=0&&history[historyIndex]===snapshot)return;
+      history=history.slice(0,historyIndex+1);history.push(snapshot);
+      if(history.length>historyLimit)history.shift();
+      historyIndex=history.length-1;updateHistoryButtons();updateState();
+    };
+    const restoreHistory=delta=>{
+      if(busy)return;
+      const target=historyIndex+delta;if(target<0||target>=history.length)return;
+      historyIndex=target;model=JSON.parse(history[historyIndex]);
+      renderEditor();renderPreview();updateHistoryButtons();
+      status.textContent=delta<0?'변경 내용을 되돌렸습니다.':'변경 내용을 다시 적용했습니다.';
+    };
     const request=async(url,options={})=>{
       const method=(options.method||'GET').toUpperCase();
       const headers={...(options.headers||{})};
@@ -303,9 +355,9 @@
       const selection=resolveSelection();
        editorPanel.querySelectorAll('[data-map-key]').forEach(element=>element.classList.toggle('selection-card',element.dataset.mapKey===activeMapKey));
        previewRoot.querySelectorAll('[data-map-key]').forEach(element=>element.classList.toggle('selection-card',element.dataset.mapKey===activeMapKey));
-      if(!selection){selectionLabel.textContent='편집 위치를 선택하세요';selectionLocation.textContent='';editToolHint.textContent='미니맵에서 섹션이나 블록을 선택하세요.';elementType.disabled=true;addElementButton.disabled=true;moveUpButton.disabled=true;moveDownButton.disabled=true;deleteElementButton.disabled=true;return;}
+        if(!selection){selectionLabel.textContent='편집 위치를 선택하세요';selectionLocation.textContent='';editToolHint.textContent='문서 구조에서 섹션이나 요소를 선택하세요.';elementType.disabled=true;addElementButton.disabled=true;moveUpButton.disabled=true;moveDownButton.disabled=true;deleteElementButton.disabled=true;return;}
       if(selection.kind==='document'){
-         selectionLabel.textContent='문서 제목 · 부제';selectionLocation.textContent='문서 전체';editToolHint.textContent='블록을 추가하려면 먼저 미니맵에서 섹션을 선택하세요.';
+         selectionLabel.textContent='문서 제목 · 부제';selectionLocation.textContent='문서 전체';editToolHint.textContent='요소를 추가하려면 먼저 문서 구조에서 섹션을 선택하세요.';
       }else if(selection.kind==='section'){
          selectionLabel.textContent=`섹션 · ${selection.section.title||'제목 없음'}`;selectionLocation.textContent=`문서 · ${selection.sectionIndex+1}번째 섹션`;editToolHint.textContent='새 요소는 선택한 섹션의 마지막에 추가됩니다.';
       }else{
@@ -332,10 +384,38 @@
     const renderMiniMap=()=>{
       minimapRoot.replaceChildren();
       if(!model)return;
-      const add=(key,label,cls='')=>{const item=button(label,()=>selectMapItem(key),`map-item ${cls}`);item.dataset.mapKey=key;item.setAttribute('aria-current',key===viewportMapKey?'location':'false');item.setAttribute('aria-pressed',String(key===activeMapKey));minimapRoot.append(item);};
-      add('doc',model.title||'문서 제목');
-      const visit=(blocks,parentKey,depth)=>blocks.forEach((block,index)=>{const key=blockMapKey(block,parentKey,index);add(key,`${blockLabel(block)}${block.id?` · #${block.id}`:''}`,'block-map');if((block.type==='details'||block.type==='notice')&&Array.isArray(block.children)&&depth<3)visit(block.children,key,depth+1);});
-      (model.sections||[]).forEach((section,index)=>{const key=sectionKey(section);add(key,`섹션 ${index+1} · ${section.title||'제목 없음'}`,'section-map');visit(section.blocks||[],key,0);});
+      const addNode=(host,key,label,cls,children=[],defaultExpanded=false)=>{
+        if(defaultExpanded&&!mapExpansionInitialized)expandedMapKeys.add(key);
+        const row=node('div','tree-entry');
+        const item=button(label,()=>selectMapItem(key),`map-item ${cls}`);item.dataset.mapKey=key;item.setAttribute('aria-current',key===viewportMapKey?'location':'false');item.setAttribute('aria-pressed',String(key===activeMapKey));row.append(item);
+        if(children.length){
+          const childRoot=node('div','tree-children');childRoot.setAttribute('role','group');
+          const expanded=expandedMapKeys.has(key);childRoot.hidden=!expanded;
+          const toggle=button(expanded?'▾':'▸',()=>{const open=childRoot.hidden;childRoot.hidden=!open;toggle.textContent=open?'▾':'▸';toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',`${label} 하위 항목 ${open?'접기':'펼치기'}`);if(open)expandedMapKeys.add(key);else expandedMapKeys.delete(key);},'tree-toggle');
+          toggle.setAttribute('aria-label',`${label} 하위 항목 ${expanded?'접기':'펼치기'}`);toggle.setAttribute('aria-expanded',String(expanded));row.append(toggle);
+          host.append(row,childRoot);children.forEach(child=>child(childRoot));
+        }else host.append(row);
+      };
+      const appendBlocks=(host,blocks,parentKey,depth)=>{
+        (blocks||[]).forEach((block,index)=>{
+          const key=blockMapKey(block,parentKey,index);
+          const childBlocks=(block.type==='details'||block.type==='notice')&&Array.isArray(block.children)&&depth<8?block.children:[];
+          const children=childBlocks.length?[childHost=>appendBlocks(childHost,childBlocks,key,depth+1)]:[];
+          addNode(host,key,`${blockLabel(block)}${block.id?` · #${block.id}`:''}`,'block-map',children);
+        });
+      };
+      addNode(minimapRoot,'doc',model.title||'문서 제목','');
+      (model.sections||[]).forEach((section,index)=>{
+        const key=sectionKey(section);const blocks=section.blocks||[];
+        const children=blocks.length?[host=>appendBlocks(host,blocks,key,0)]:[];
+        addNode(minimapRoot,key,`${index+1}. ${section.title||'제목 없음'}`,'section-map',children,!mapExpansionInitialized);
+      });
+      const activeItem=minimapRoot.querySelector(`[data-map-key="${CSS.escape(activeMapKey)}"]`);
+      for(let group=activeItem?.parentElement?.closest('.tree-children');group;group=group.parentElement?.closest('.tree-children')){
+        group.hidden=false;const row=group.previousElementSibling;const key=row?.querySelector('.map-item')?.dataset.mapKey;const toggle=row?.querySelector('.tree-toggle');
+        if(key)expandedMapKeys.add(key);if(toggle){toggle.textContent='▾';toggle.setAttribute('aria-expanded','true');toggle.setAttribute('aria-label',`${row.querySelector('.map-item').textContent} 하위 항목 접기`);}
+      }
+      mapExpansionInitialized=true;
       if(!minimapRoot.querySelector(`[data-map-key="${CSS.escape(activeMapKey)}"]`))activeMapKey='doc';
       if(!minimapRoot.querySelector(`[data-map-key="${CSS.escape(viewportMapKey)}"]`))viewportMapKey='doc';
       minimapRoot.querySelectorAll('.map-item').forEach(item=>{item.setAttribute('aria-current',item.dataset.mapKey===viewportMapKey?'location':'false');item.setAttribute('aria-pressed',String(item.dataset.mapKey===activeMapKey));});
@@ -375,7 +455,9 @@
     };
     const hasChanges=()=>model&&JSON.stringify(model)!==baseline;
     const updateState=()=>{
-      if(!selected){state.textContent='';editorPanel.hidden=true;previewPanel.hidden=true;saveButton.disabled=true;previewButton.disabled=true;deactivateButton.disabled=true;reactivateButton.disabled=true;addSectionButton.disabled=true;updateSelectionTools();return;}
+      updateHistoryButtons();
+      if(!selected){state.textContent='';openDocumentLink.hidden=true;editorPanel.hidden=true;previewPanel.hidden=true;saveButton.disabled=true;previewButton.disabled=true;deactivateButton.disabled=true;reactivateButton.disabled=true;addSectionButton.disabled=true;updateSelectionTools();return;}
+      openDocumentLink.href=new URL(selected.path,location.origin+'/').href;openDocumentLink.hidden=false;
       state.textContent=`${model?.title||selected.title} · ${selected.documentId} · ${selected.active?'활성':'비활성'} · ${selected.documentVersion}${hasChanges()?' · 저장되지 않은 변경':''}`;
       editorPanel.hidden=!model;previewPanel.hidden=!model;
       saveButton.disabled=!selected.active||busy;
@@ -400,7 +482,7 @@
     };
     const insertElement=()=>{
       const selection=resolveSelection();
-      if(!selection||!['section','block'].includes(selection.kind)){editToolHint.textContent='요소를 넣을 섹션이나 블록을 미니맵에서 먼저 선택하세요.';return;}
+      if(!selection||!['section','block'].includes(selection.kind)){editToolHint.textContent='요소를 넣을 섹션이나 요소를 문서 구조에서 먼저 선택하세요.';return;}
       const type=elementType.value;if(!type)return;
       if(type==='details'&&selection.kind==='block'&&selection.depth>0){editToolHint.textContent='접기/펼치기는 섹션 본문 위치에 추가할 수 있습니다.';return;}
       const insertingInsideContainer=selection.kind==='block'&&Array.isArray(selection.block.children)&&(selection.block.type==='details'||selection.block.type==='notice');
@@ -650,24 +732,25 @@
     };
     const loadDocument=async()=>{
       if(hasChanges()&&!window.confirm('저장하지 않은 변경이 있습니다. 다른 문서를 불러올까요?')){select.value=selected?.documentId||'';return;}
-      selected=documents.find(item=>item.documentId===select.value)||null;model=null;baseline='';updateState();
+      selected=documents.find(item=>item.documentId===select.value)||null;model=null;baseline='';expandedMapKeys.clear();mapExpansionInitialized=false;resetHistory();updateState();
       if(!selected)return;
       status.textContent='문서를 불러오는 중입니다.';busy=true;updateState();
-      try{const value=await request(`${endpoint}/${encodeURIComponent(selected.documentId)}`);model=clone(value);documentCache.set(selected.documentId,model);activeMapKey='doc';viewportMapKey='doc';baseline=JSON.stringify(model);renderEditor();renderPreview();status.textContent='불러오기 완료.';}
-      catch(error){model=null;renderEditor();status.textContent=`문서를 불러오지 못했습니다: ${error.message}`;}
+      try{const value=await request(`${endpoint}/${encodeURIComponent(selected.documentId)}`);model=clone(value);documentCache.set(selected.documentId,model);activeMapKey='doc';viewportMapKey='doc';baseline=JSON.stringify(model);resetHistory();renderEditor();renderPreview();status.textContent='불러오기 완료.';}
+      catch(error){model=null;resetHistory();renderEditor();status.textContent=`문서를 불러오지 못했습니다: ${error.message}`;}
       finally{busy=false;updateState();}
     };
-    const loadList=async()=>{
+    const loadList=async(preferredDocumentId='')=>{
       status.textContent='문서 목록을 불러오는 중입니다.';
       try{const result=await request(endpoint);documents=Array.isArray(result.documents)?result.documents:[];select.replaceChildren();documents.forEach(item=>{const option=node('option','',`${item.title} (${item.active?'활성':'비활성'})`);option.value=item.documentId;select.append(option);});select.disabled=!documents.length;
         if(!documents.length){selected=null;model=null;updateState();status.textContent='관리 가능한 콘텐츠 문서가 없습니다.';return;}
-        if(selected&&documents.some(d=>d.documentId===selected.documentId))select.value=selected.documentId;
+        if(preferredDocumentId&&documents.some(d=>d.documentId===preferredDocumentId))select.value=preferredDocumentId;
+        else if(selected&&documents.some(d=>d.documentId===selected.documentId))select.value=selected.documentId;
         await loadDocument();
       }catch(error){select.replaceChildren(new Option('목록 조회 실패',''));select.disabled=true;status.textContent=`문서 목록을 불러오지 못했습니다: ${error.message}`;}
     };
     const save=async()=>{
       if(!selected||!model)return;
-      try{validate();model.sections.forEach((section,index)=>{section.order=index+1;normalizeOrders(section.blocks);});}
+      try{validate();model.sections.forEach((section,index)=>{section.order=index+1;normalizeOrders(section.blocks);});captureHistory();}
       catch(error){status.textContent=`입력 내용을 확인해 주세요: ${error.message}`;return;}
       busy=true;updateState();status.textContent='저장 중입니다.';
       try{await request(`${endpoint}/${encodeURIComponent(selected.documentId)}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(model)});baseline=JSON.stringify(model);documentCache.set(selected.documentId,model);status.textContent='저장했습니다. 일반 매뉴얼 페이지를 새로고침하면 변경 내용이 표시됩니다.';await loadList();}
@@ -684,6 +767,24 @@
     select.addEventListener('change',loadDocument);
     document.getElementById('reload').addEventListener('click',loadList);
     saveButton.addEventListener('click',save);
+    undoButton.addEventListener('click',()=>restoreHistory(-1));
+    redoButton.addEventListener('click',()=>restoreHistory(1));
+    document.getElementById('toggle-new-page').addEventListener('click',()=>{newPageForm.hidden=!newPageForm.hidden;if(!newPageForm.hidden)document.getElementById('new-page-slug').focus();});
+    newPageForm.addEventListener('submit',async event=>{
+      event.preventDefault();if(!newPageForm.reportValidity())return;
+      if(hasChanges()&&!window.confirm('저장하지 않은 변경이 있습니다. 새 페이지를 만들고 현재 문서를 바꿀까요?'))return;
+      const slug=document.getElementById('new-page-slug').value.trim();
+      const title=document.getElementById('new-page-title').value.trim();
+      const documentId=`manual-${slug}`;
+      const content={documentId,documentVersion:'local-v1',title,sections:[{id:'section-01',order:1,title:'새 섹션',blocks:[]}]};
+      const createButton=document.getElementById('create-page');createButton.disabled=true;
+      try{
+        const created=await request(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug,content})});
+        newPageForm.reset();newPageForm.hidden=true;selected=null;model=null;baseline='';resetHistory();
+        status.textContent=`새 페이지를 만들었습니다. 주소: ${created.path}`;await loadList(created.documentId);
+      }catch(error){status.textContent=`페이지를 만들지 못했습니다: ${error.message}`;}
+      finally{createButton.disabled=false;}
+    });
     previewButton.addEventListener('click',()=>{previewPanel.scrollIntoView({behavior:'smooth',block:'start'});document.getElementById('preview-heading').focus({preventScroll:true});});
     deactivateButton.addEventListener('click',()=>changeActive(false));
     reactivateButton.addEventListener('click',()=>changeActive(true));
@@ -737,6 +838,14 @@
     });
     editorPanel.addEventListener('dragend',()=>{draggingKey='';editorPanel.querySelectorAll('.dragging,.drop-target').forEach(item=>item.classList.remove('dragging','drop-target'));});
     editorScale.addEventListener('input',()=>{editorRoot.style.zoom=`${editorScale.value}%`;inspectorContent.style.zoom=`${editorScale.value}%`;editorScaleValue.value=`${editorScale.value}%`;editorScaleValue.textContent=`${editorScale.value}%`;});
+    document.addEventListener('input',()=>queueMicrotask(captureHistory),true);
+    document.addEventListener('change',()=>queueMicrotask(captureHistory),true);
+    document.addEventListener('click',()=>queueMicrotask(captureHistory),true);
+    document.addEventListener('drop',()=>queueMicrotask(captureHistory),true);
+    document.addEventListener('keydown',event=>{
+      const key=event.key.toLowerCase();if(!(event.ctrlKey||event.metaKey)||!['z','y'].includes(key)||event.target.closest('input,textarea,select,[contenteditable="true"]'))return;
+      event.preventDefault();restoreHistory(key==='y'||event.shiftKey?1:-1);
+    });
     elementType.addEventListener('change',updateSelectionTools);
     addElementButton.addEventListener('click',insertElement);
     moveUpButton.addEventListener('click',()=>moveSelection(-1));

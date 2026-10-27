@@ -8,6 +8,7 @@ import java.util.*;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.*;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.web.bind.annotation.*;
 import local.oneai.config.LocalConfig;
 import local.oneai.service.EventService;
@@ -30,6 +31,12 @@ public class LocalController {
         try { return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(manuals.get(documentId)); }
         catch (NoSuchElementException ex) { return ResponseEntity.status(404).cacheControl(CacheControl.noStore()).body(Map.of("error",Map.of("code","DOCUMENT_NOT_FOUND","message","문서를 찾을 수 없습니다."))); }
         catch (Exception ex) { return ResponseEntity.status(503).cacheControl(CacheControl.noStore()).body(Map.of("error",Map.of("code","CONTENT_UNAVAILABLE","message","문서 내용을 불러오지 못했습니다."))); }
+    }
+    @GetMapping("/manual/{slug}")
+    public ResponseEntity<?> customManualPage(@PathVariable String slug) {
+        if (slug == null || !slug.matches("[a-z0-9]+(?:-[a-z0-9]+){0,7}") || !manuals.hasActivePath("/manual/" + slug))
+            return ResponseEntity.notFound().cacheControl(CacheControl.noStore()).build();
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(MediaType.TEXT_HTML).body(new ClassPathResource("manual/view.html"));
     }
     @PostMapping("/api/v1/events")
     public ResponseEntity<?> collect(HttpServletRequest request) {

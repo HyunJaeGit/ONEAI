@@ -15,3 +15,7 @@ school-transfer	pages/school/transfer.html
 school-installation	pages/school/installation.html
 relocation-index	pages/relocation/
 contact	pages/contact.html
+manual-maintenance	/manual/maintenance
+manual-maintenance-repair	/manual/maintenance-repair
+manual-maintenance-equipment	/manual/maintenance-equipment
+manual-maintenance-loan	/manual/maintenance-loan
